@@ -138,6 +138,16 @@ class Module:
             if type(name.left) is Subscript and name.left.head == PTR:
                 return self.import_function(Attribute(name.left.items[0], name.right))
 
+            if type(name.left) is Attribute:
+                temporary_checker = Checker(None, self)
+
+                name.left = temporary_checker.check_attribute(name.left)
+
+                if name.left.type_.module is None:
+                    return self.import_function(Attribute(name.left.type_.name, name.right))
+
+                return name.left.type_.module.import_function(Attribute(name.left.type_.name, name.right))
+
             if name.left in self.scope.variables:
                 variable = self.scope.get_variable(name.left)
 
@@ -253,6 +263,7 @@ class Checker:
         call.arguments = [self.check_expression(argument) for argument in call.arguments]
 
         # inserts self
+        print(function.head.format, type(call.name))
         if type(function) is AssociatedFunction:
             if type(call.name) is Typed:
                 call.arguments.insert(0, call.name.value.left)
@@ -305,7 +316,7 @@ class Checker:
         
         if type(attribute.left) is Type:
             type_ = attribute.left
-        elif type(attribute.left) is Typed and type(attribute.left.value) is Call:
+        elif type(attribute.left) is Typed:
             type_ = attribute.left.type_
         else:
             type_ = self.module.import_type(attribute.left)
@@ -320,7 +331,6 @@ class Checker:
 
             if attribute.right not in type_declaration_fields_dict:
                 raise NameError(f'{attribute.right} is not a valid attribute of struct {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
-            
             return type_declaration_fields_dict[attribute.right]
         elif type(type_.declaration) is UnionDeclaration:
             type_declaration_fields_dict = dict(type_.declaration.fields)
@@ -340,7 +350,8 @@ class Checker:
             if attribute.right not in type_.associated_functions:
                 raise NameError(f'{attribute.right} is not a a associated function of type {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
             
-            return type_.associated_functions[attribute.right]
+            # NOTE: May cause trouble
+            return Typed(attribute, FUNCTION)
         else:
             raise NotImplementedError(type_)
 

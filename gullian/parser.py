@@ -365,7 +365,12 @@ class Parser:
         token = self.source.capture()
 
         if type(token) is Token and token.kind is TokenKind.Dot:
-            return Attribute(name, self.parse_attribute(self.source.capture()))
+            next_name = self.source.capture()
+
+            if type(next_name) is not Name:
+                raise TypeError(f"expecting a Name asfter {name}, got {next_name}. at line {name.line}. in module {self.module.name}")
+
+            return self.parse_attribute(Attribute(name, next_name))
         else:
             self.source.release()
         

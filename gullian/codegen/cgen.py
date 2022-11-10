@@ -155,9 +155,11 @@ class CGen:
             if not type_.declaration.generic:
                 yield self.gen_type(type_)
 
-                for function in type_.associated_functions.values():
-                    if type(function.head.return_hint) is Typed:
-                        yield self.gen_function(function)
+            for function in type_.associated_functions.values():
+                if type(function.head.return_hint) is Type:
+                    yield self.gen_function(function)
+                else:
+                    print(f'compiled bug: ignoring generic leak {function.head.format} of {function.owner.format}')
 
         for function in self.module.functions.values():
             if type(function) is Extern:

@@ -109,7 +109,8 @@ class Module:
                 else:
                     new_type_declaration = UnionDeclaration(name, [(field_name, apply_generic(field_type)) for field_name, field_type in struct_declaration.fields], list())
 
-                generated_type = Type(name, Type.gen_uid(), dict(type_.associated_functions), new_type_declaration, self)
+                generated_type = Type(name, Type.gen_uid(), dict(), new_type_declaration, self)
+                generated_type.associated_functions = {name: AssociatedFunction(generated_type, function) for name, function in type_.associated_functions.items()}
 
                 
                 self.types[name] = generated_type
@@ -159,7 +160,7 @@ class Module:
             new_function = FunctionDeclaration(new_function_head, copy.deepcopy(function.body))
 
             # This is important to check_call() for methods to work properlyiif
-            if type(function) is AssociatedFunction:
+            if type(fun) is AssociatedFunction:
                 new_function = AssociatedFunction(function.owner, new_function)
 
             new_function = temporary_checker.check_function_declaration(new_function)
@@ -199,12 +200,7 @@ class Module:
                 name_left_type = self.import_type(name.left)
 
                 if name.right in name_left_type.associated_functions:
-                    function = name_left_type.associated_functions[name.right]
-
-                    if function.head.generic:
-                        return apply_generic_function(name.right, function)
-
-                    return function
+                    return name_left_type.associated_functions[name.right]
                 
                 raise NameError(f'{name.right} is not an associated function of {name.left}. at line {name.right.line} in module {self.name}')
             elif name.left in self.imports:
@@ -250,6 +246,9 @@ class Module:
             # This is important to check_call() for methods to work properly
             if type(function) is AssociatedFunction:
                 new_function = AssociatedFunction(function.owner, new_function)
+                fun_name = new_function.head.name.head.rightest
+
+                new_function.owner.associated_functions[fun_name] = new_function
             
             new_function = temporary_checker.check_function_declaration(new_function)
 

@@ -5,6 +5,8 @@ import std.fmt
 fun main() : int {
     let fruits = vec.new[str]("apple")
 
+    fruits.push[str]("banana")
+
     let i = 0
     while i < fruits.length {
         io.puts(fruits.items[i])

@@ -318,7 +318,12 @@ class Checker:
 
 
         if call.generics:
-            function = function.head.module.import_function(Subscript(function.head.name.head, tuple(call.generics)))
+            print()
+            print('$$$', function)
+            if type(function) is AssociatedFunction:
+                function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.head.rightest), tuple(call.generics)))
+            else:
+                function = function.head.module.import_function(Subscript(function.head.name.head, tuple(call.generics)))
         elif function.head.generic:
             raise ValueError(f"the called function is generic, you must specify its type parameters in the callee '{call.format}'. at line {call.line} in module {self.module.name}")
 

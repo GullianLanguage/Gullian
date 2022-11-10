@@ -80,7 +80,7 @@ class CGen:
         return f'{self.gen_name(call.declaration.head.name)}({generated_args})'
     
     def gen_assignment(self, assignment: Assignment):
-        return f'{self.gen_expression(assignment.name)} = {self.gen_expression(assignment.value)};'
+        return f'{self.gen_expression(assignment.name)} {assignment.operator.format} {self.gen_expression(assignment.value)};'
     
     def gen_if(self, if_: If, indent=1):
         return f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}'

@@ -1,12 +1,16 @@
+import std.io
+import std.fmt
+
 struct Book {
     title: str,
+    author: str,
     year: int
 }
 
-# Book is not mutable, &Book is
-fun Book.test(self: &Book) : void {
-    self.test()
-}
+fun main() : int {
+    let alice_in_wonderland = Book { "Alice in Wonderland", "Lewis Carroll", 1865 }
 
-fun test(arg: Book) : void {
+    io.puts(alice_in_wonderland.title)
+    io.puts(alice_in_wonderland.author)
+    io.puts(alice_in_wonderland.year.to_string())
 }

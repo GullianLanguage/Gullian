@@ -216,7 +216,10 @@ class Module:
             function: FunctionDeclaration = self.import_function(name.head)
 
             if not function.head.generic:
-                raise TypeError(f"function {function.head.name} is not a generic function. at line {name.line}. in module {self.name}")
+                if function.head.name == name:
+                    return function
+
+                raise TypeError(f"function {function.head.name.format} is not a generic function, got {name.format}. at line {name.line}. in module {self.name}")
             
             def apply_generic(field_type: Type):
                 if type(field_type) is Subscript:

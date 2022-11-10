@@ -6,6 +6,7 @@ fun main() : int {
     let fruits = vec.new[str]("apple")
 
     fruits.push[str]("banana")
+    fruits.push[str]("pear")
 
     let i = 0
     while i < fruits.length {

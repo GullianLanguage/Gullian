@@ -1,0 +1,4 @@
+extern fun malloc(size: int) : int
+extern fun realloc(block: ptr, size: int) : ptr
+extern fun free(block: ptr) : void
+extern fun memcpy(destination: ptr, source: ptr, num: int) : ptr

@@ -1,0 +1,14 @@
+import std.vec
+import std.io
+import std.fmt
+
+fun main() : int {
+    let fruits = vec.new[str]("apple")
+    fruits.push[str]("banana")
+
+    io.puts(fruits.items[0])
+    io.puts(fruits.items[1])
+
+    let x: int = str
+    io.puts(x.to_string())
+}

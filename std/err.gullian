@@ -1,0 +1,20 @@
+extern fun exit(code: int) : void
+
+import std.io
+
+union Result[T, E] {
+    ok: T,
+    err: E
+}
+
+fun Result.unwrap[T, E](self: Result[T, E]) : T {
+    if self.ok? {
+        return self.ok
+    }
+
+    if self.err? {
+        io.puts(self.err)
+    }
+
+    exit(-1)
+}

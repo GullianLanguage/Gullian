@@ -1,0 +1,19 @@
+import std.mem
+
+struct Vector[T] {
+    length: int,
+    items: ptr[T]
+}
+
+fun Vector.push[T](self: Vector[T], item: T) : void {
+    self.length += 1
+    self.items = mem.realloc(self.items, self.length * T)
+    self.items[self.length] = item
+}
+
+fun new[T](item: T) : Vector[T] {
+    let items: ptr[T] = mem.malloc(T)
+    items[0] = item
+
+    return Vector[T] { 1, items }
+}

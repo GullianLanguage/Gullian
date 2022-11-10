@@ -1,0 +1,43 @@
+extern fun strlen(string: str) : int
+extern fun sprintf(buffer: str, fmt: str, arg: any) : void
+
+import std.mem
+
+fun cat(a: str, b: str) : str {
+    let len_a = strlen(a)
+    let len_b = strlen(b)
+    let len_a_b = len_a + len_b
+
+    let c: ptr = mem.malloc(len_a_b +1)
+
+    mem.memcpy(c, a, len_a)
+    mem.memcpy(c + len_a, b, len_b)
+
+    c[len_a_b] = 0
+
+    return c
+}
+
+fun int.to_string(self: int) : str {
+    if self == 0 {
+        return "0"
+    }
+
+    let buffer: str = mem.malloc(256)
+
+    sprintf(buffer, "%i", self)
+
+    return buffer
+}
+
+fun float.to_string(self: float) : str {
+    if self == 0.0 {
+        return "0.0"
+    }
+
+    let buffer: str = mem.malloc(8)
+
+    sprintf(buffer, "%f", self)
+
+    return buffer
+}

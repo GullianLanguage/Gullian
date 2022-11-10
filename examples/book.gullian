@@ -1,0 +1,12 @@
+struct Book {
+    title: str,
+    year: int
+}
+
+# Book is not mutable, &Book is
+fun Book.test(self: &Book) : void {
+    self.test()
+}
+
+fun test(arg: Book) : void {
+}

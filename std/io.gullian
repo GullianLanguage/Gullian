@@ -1,0 +1,1 @@
+extern fun puts(string: str) : void

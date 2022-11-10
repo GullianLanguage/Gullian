@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# C/C++
+*.exe
+*.dll
+*.so
+*.o
+*.a
+*.lib
+*.c

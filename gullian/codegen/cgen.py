@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, If, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
+from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
 from ..checker import BASIC_TYPES, Module, Type, Typed, Body
-from ..type import PTR
+from ..type import PTR, ANY
 
 @dataclass
 class CGen:
@@ -46,6 +46,10 @@ class CGen:
         return f'{self.gen_name(variable_declaration.type_)} {self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
     
     def gen_expression(self, expression: Expression):
+        # NOTE: This is a hack, something is wrong with the typechecker
+        if type(expression) is not Typed:
+            return self.gen_expression(Typed(expression, ANY))
+
         if type(expression.value) is Type:
             return f'sizeof({self.gen_name(expression.value)})'
 
@@ -90,6 +94,8 @@ class CGen:
                 return self.gen_if(line, indent +1)
             elif type(line) is Return:
                 return f'return {self.gen_expression(line.value)};'
+            elif type(line) is While:
+                return f'while ({self.gen_expression(line.condition)}) {self.gen_body(line.body, indent +1)}'
 
             if type(line.value) is VariableDeclaration:
                 return self.gen_variable_declaration(line)
@@ -150,7 +156,8 @@ class CGen:
                 yield self.gen_type(type_)
 
                 for function in type_.associated_functions.values():
-                    yield self.gen_function(function)
+                    if type(function.head.return_hint) is Typed:
+                        yield self.gen_function(function)
 
         for function in self.module.functions.values():
             if type(function) is Extern:

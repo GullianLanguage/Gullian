@@ -4,10 +4,13 @@ import std.fmt
 
 fun main() : int {
     let fruits = vec.new[str]("apple")
-    fruits.push[str]("banana")
 
-    io.puts(fruits.items[0])
-    io.puts(fruits.items[1])
+    let i = 0
+    while i < fruits.length {
+        io.puts(fruits.items[i])
+        i += 1
+
+    }
 
     let x: int = str
     io.puts(x.to_string())

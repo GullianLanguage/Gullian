@@ -109,7 +109,8 @@ class Module:
                 else:
                     new_type_declaration = UnionDeclaration(name, [(field_name, apply_generic(field_type)) for field_name, field_type in struct_declaration.fields], list())
 
-                generated_type = Type(name, Type.gen_uid(), type_.associated_functions, new_type_declaration, self)
+                generated_type = Type(name, Type.gen_uid(), dict(type_.associated_functions), new_type_declaration, self)
+
                 
                 self.types[name] = generated_type
 
@@ -129,6 +130,44 @@ class Module:
         raise TypeError(f"argument 'name' must be a Name or Attribute, found {type(name)}")
 
     def import_function(self, name: Name | Attribute):
+
+        def apply_generic_function(name, function):
+            if not function.head.generic:
+                raise TypeError(f"function {function.head.name} is not a generic function. at line {name.line}. in module {self.name}")
+
+            def apply_generic(field_type: Type):
+                if type(field_type) is Subscript:
+                    return Subscript(field_type.head, tuple(apply_generic(item) for item in field_type.items))
+
+                if field_type in function.head.generic:
+                    return name.items[function.head.generic.index(field_type)]
+                
+                return field_type
+
+            old_scope = function.head.module.scope
+            function.head.module.scope = old_scope.copy()
+                                                                                 
+            temporary_checker = Checker(tuple(), function.head.module)
+            new_function_head = FunctionHead(name, [(argument_name, apply_generic(argument_type)) for argument_name, argument_type in function.head.arguments], apply_generic(function.head.return_hint), list(), function.head.module)
+
+            # Make type aliases for check_body()
+            for type_alias, parametric_type in zip(function.head.generic, name.items):
+                function.head.module.scope.type_variables[type_alias] = parametric_type
+
+            for argument_name, argument_type in new_function_head.arguments:
+                function.head.module.scope.variables[argument_name] = FunctionArgument(argument_name, argument_type)                                              
+            new_function = FunctionDeclaration(new_function_head, copy.deepcopy(function.body))
+
+            # This is important to check_call() for methods to work properlyiif
+            if type(function) is AssociatedFunction:
+                new_function = AssociatedFunction(function.owner, new_function)
+
+            new_function = temporary_checker.check_function_declaration(new_function)
+
+            function.head.module.scope = old_scope
+
+            return new_function_head
+
         if type(name) is Name:
             if name not in self.functions:
                 raise NameError(f'{name} is not a function of module {self.name}. at line {name.line}')
@@ -160,7 +199,12 @@ class Module:
                 name_left_type = self.import_type(name.left)
 
                 if name.right in name_left_type.associated_functions:
-                    return name_left_type.associated_functions[name.right]
+                    function = name_left_type.associated_functions[name.right]
+
+                    if function.head.generic:
+                        return apply_generic_function(name.right, function)
+
+                    return function
                 
                 raise NameError(f'{name.right} is not an associated function of {name.left}. at line {name.right.line} in module {self.name}')
             elif name.left in self.imports:
@@ -188,7 +232,7 @@ class Module:
                 return field_type
 
             old_scope = function.head.module.scope
-            self.scope = old_scope.copy()
+            function.head.module.scope = old_scope.copy()
 
 
             temporary_checker = Checker(tuple(), function.head.module)
@@ -196,10 +240,10 @@ class Module:
 
             # Make type aliases for check_body()
             for type_alias, parametric_type in zip(function.head.generic, name.items):
-                self.scope.type_variables[type_alias] = parametric_type
+                function.head.module.scope.type_variables[type_alias] = parametric_type
             
             for argument_name, argument_type in new_function_head.arguments:
-                self.scope.variables[argument_name] = FunctionArgument(argument_name, argument_type)
+                function.head.module.scope.variables[argument_name] = FunctionArgument(argument_name, argument_type)
             
             new_function = FunctionDeclaration(new_function_head, copy.deepcopy(function.body))
             
@@ -261,9 +305,9 @@ class Checker:
 
         call.name = self.check_expression(call.name)    
         call.arguments = [self.check_expression(argument) for argument in call.arguments]
+        call.declaration = function
 
         # inserts self
-        print(function.head.format, type(call.name))
         if type(function) is AssociatedFunction:
             if type(call.name) is Typed:
                 call.arguments.insert(0, call.name.value.left)

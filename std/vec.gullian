@@ -8,7 +8,7 @@ struct Vector[T] {
 fun Vector.push[T](self: Vector[T], item: T) : void {
     self.length += 1
     self.items = mem.realloc(self.items, self.length * T)
-    self.items[self.length] = item
+    self.items[self.length -1] = item
 }
 
 fun new[T](item: T) : Vector[T] {

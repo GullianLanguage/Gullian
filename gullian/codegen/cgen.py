@@ -58,10 +58,18 @@ class CGen:
                 return f'"{expression.value.value}"'
             
             return expression.value.format
+        elif type(expression.value) is Name:
+            return expression.format
         elif type(expression.value) is TestGuard:
             return f'{self.gen_expression(expression.value.expression.left)}.tag == {self.gen_name(expression.value.expression.left.type_)}__{self.gen_name(expression.value.expression.right)}'
         elif type(expression.value) is Attribute:
+            if expression.value.left.type_ == PTR:
+                return f'{self.gen_name(expression.value.left)}->{self.gen_name(expression.value.right)}'
+
             return f'{self.gen_name(expression.value.left)}.{self.gen_name(expression.value.right)}'
+        elif type(expression.value) is Subscript:
+            return f'{self.gen_expression(expression.value.head)}[{", ".join(self.gen_expression(item) for item in expression.value.items)}]'
+
         elif type(expression.value) is StructLiteral:
             return self.gen_literal(expression.value)
         elif type(expression.value) is Call:

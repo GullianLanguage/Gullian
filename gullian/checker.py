@@ -6,7 +6,7 @@ import copy
 from .type import *
 
 from .source import Source
-from .lexer import Lexer, Name, Literal, TokenKind, Comment
+from .lexer import Lexer, Name, Literal, Token, TokenKind, Comment
 from .parser import Ast, TypeDeclaration, Expression
 from .parser import Parser, FunctionDeclaration, FunctionHead, Extern, Import, EnumDeclaration, StructDeclaration, UnionDeclaration, VariableDeclaration, Assignment, Body, While, If, Return, Comptime, Call, Attribute, Subscript, StructLiteral, UnaryOperator, BinaryOperator, TestGuard
 from .interpreter import Interpreter
@@ -306,26 +306,31 @@ class Checker:
         call.arguments = [self.check_expression(argument) for argument in call.arguments]
         call.declaration = function
 
-        # inserts self
-        if type(function) is AssociatedFunction:
-            if type(call.name) is Typed:
-                call.arguments.insert(0, call.name.value.left)
-        
-        if len(call.arguments) > len(function.head.arguments):
-            raise ValueError(f'too many arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')
-        elif len(call.arguments) < len(function.head.arguments):
-            raise ValueError(f'too few arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')
-
 
         if call.generics:
-            print()
-            print('$$$', function)
             if type(function) is AssociatedFunction:
                 function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.head.rightest), tuple(call.generics)))
             else:
                 function = function.head.module.import_function(Subscript(function.head.name.head, tuple(call.generics)))
         elif function.head.generic:
             raise ValueError(f"the called function is generic, you must specify its type parameters in the callee '{call.format}'. at line {call.line} in module {self.module.name}")
+
+        function_arguments_dict = dict(function.head.arguments)
+
+        # inserts self
+        if type(function) is AssociatedFunction:
+            if type(call.name) is Typed:
+                print()
+                print('xxxx', function_arguments_dict['self'])
+                if function_arguments_dict['self'] == PTR:
+                    call.arguments.insert(0, Typed(UnaryOperator(Token(TokenKind.Ampersand, 0), call.name.value.left), PTR))
+                else:
+                    call.arguments.insert(0, call.name.value.left)
+        
+        if len(call.arguments) > len(function.head.arguments):
+            raise ValueError(f'too many arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')
+        elif len(call.arguments) < len(function.head.arguments):
+            raise ValueError(f'too few arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')
 
         for call_argument, (function_argument_name, function_argument_type) in zip(call.arguments, function.head.arguments):
             if not self.check_type_compatibility(call_argument.type_, function_argument_type):
@@ -370,7 +375,7 @@ class Checker:
             type_ = self.module.import_type(attribute.left)
 
         if type_ == PTR and type(type_.name) is Subscript:
-            type_ = self.module.import_type(type_.name.items[0])
+            type_ = type_.name.items[0] if type(type_.name.items[0]) is Type else self.module.import_type(type_.name.items[0])
 
         if type(type_.declaration) is EnumDeclaration:
             return Typed(attribute.left, type_.name)

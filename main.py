@@ -11,7 +11,7 @@ argparser.add_argument('infile', type=str)
 argparser.add_argument('outfile', type=str)
 
 def compile_file(infile: str, outfile: str):
-    file_string = open('examples/hello_world.gullian').read()
+    file_string = open(infile).read()
     module = Module.new()
 
     tokens = tuple(Lexer(Source(file_string), module).lex())

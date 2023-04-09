@@ -96,7 +96,13 @@ class CGen:
     def gen_assignment(self, assignment: Assignment):
         return f'{self.gen_expression(assignment.name)} {assignment.operator.format} {self.gen_expression(assignment.value)};'
     
-    def gen_if(self, if_: If, indent=1):
+    def gen_if(self, if_: If, indent=0):
+        if type(if_.false_body) is If:
+            return [
+                f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}',
+                f'else {self.gen_if(if_.false_body, indent=indent)}'
+            ]
+        
         return f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}'
     
     def gen_body(self, body: Body, indent=0):
@@ -119,8 +125,18 @@ class CGen:
                 return self.gen_assignment(line.value)
             
             return self.gen_expression(line.value) + ';'
+        
+        lines_generated = []
 
-        return '{\n'+ "".join([tab_next + gen_line(line) + '\n' for line in body.lines]) + tab + '}'
+        for line in body.lines:
+            line_generated = gen_line(line)
+
+            if type(line_generated) is list:
+                lines_generated.extend(line_generated)
+            else:
+                lines_generated.append(line_generated)
+
+        return '{\n'+ "".join([tab_next + line_generated + '\n' for line_generated in lines_generated]) + tab + '}'
     
     def gen_type(self, type_: Type):
         if type(type_.declaration) is StructDeclaration:

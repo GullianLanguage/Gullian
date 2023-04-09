@@ -8,7 +8,7 @@ from .type import *
 from .source import Source
 from .lexer import Lexer, Name, Literal, Token, TokenKind, Comment
 from .parser import Ast, TypeDeclaration, Expression
-from .parser import Parser, FunctionDeclaration, FunctionHead, Extern, Import, EnumDeclaration, StructDeclaration, UnionDeclaration, VariableDeclaration, Assignment, Body, While, If, Return, Comptime, Call, Attribute, Subscript, StructLiteral, UnaryOperator, BinaryOperator, TestGuard
+from .parser import Parser, FunctionDeclaration, FunctionHead, Extern, Import, EnumDeclaration, StructDeclaration, UnionDeclaration, VariableDeclaration, Assignment, Body, While, If, Return, Comptime, Switch, Call, Attribute, Subscript, StructLiteral, UnaryOperator, BinaryOperator, TestGuard
 from .interpreter import Interpreter
 
 from .type import *
@@ -544,6 +544,8 @@ class Checker:
     def check_expression(self, expression: Expression):
         if type(expression) is Comptime:
             return self.check_comptime(expression)
+        elif type(expression) is Switch:
+            return self.check_switch(expression)
         elif type(expression) is Body:
             return Typed(self.check_body(expression, VOID), VOID)
 
@@ -612,6 +614,12 @@ class Checker:
 
         return interpreter.interpret(comptime)
     
+    def check_switch(self, switch: Switch):
+        switch.expression = self.check_expression(switch.expression)
+        switch.branches = {(branch if type(branch) is Name and branch.value == '_' else self.check_expression(branch)): self.check_expression(expression) for branch, expression in switch.branches.items()}
+
+        return Typed(switch, switch.default_branch.type_)
+    
     def check_variable_declaration(self, variable_declaration: VariableDeclaration):
         variable_declaration.value = self.check_expression(variable_declaration.value)
 
@@ -656,6 +664,8 @@ class Checker:
                 return self.check_while(line, return_type)
             elif type(line) is Comptime:
                 return self.check_comptime(line)
+            elif type(line) is Switch:
+                return self.check_switch(line)
             elif type(line) is VariableDeclaration:
                 return self.check_variable_declaration(line)
             elif type(line) is Assignment:

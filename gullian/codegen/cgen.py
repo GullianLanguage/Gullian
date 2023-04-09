@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
-from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
+from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
 from ..checker import BASIC_TYPES, Module, Type, Typed, Body
 from ..type import TYPE, PTR, ANY
+
+NEWLINE = '\n'
 
 @dataclass
 class CGen:
@@ -81,7 +83,8 @@ class CGen:
             return self.gen_call(expression.value)
         elif type(expression.value) is BinaryOperator:
             return f'{self.gen_expression(expression.value.left)}{expression.value.operator.format}{self.gen_expression(expression.value.right)}'
-        
+        elif type(expression.value) is Switch:
+            raise RuntimeError(f'switch is special, and must be generated before gen_expression()')
         
         return expression.format
     
@@ -105,6 +108,17 @@ class CGen:
         
         return f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}'
     
+    def gen_switch(self, switch: Switch, indent=0):
+        tab = '  ' * indent
+        tab_next = '  ' * (indent +1)
+
+        generated_switch_body = ''.join(f'{NEWLINE}{tab_next}{"default" if type(branch) is Name and branch.value == "_" else("case " + self.gen_expression(branch)) }: gull_expr_result = {self.gen_expression(expr)}; break;' for branch, expr in switch.value.branches.items())
+
+        return ''.join([
+            f'{tab}{self.gen_name(switch.type_.name)} gull_expr_result;{NEWLINE}',
+            f'{tab}switch ({self.gen_expression(switch.value.expression)}) {{ {generated_switch_body}{NEWLINE}{tab}}}'
+        ])
+    
     def gen_body(self, body: Body, indent=0):
         tab = '  ' * indent
         tab_next = '  ' * (indent +1)
@@ -113,6 +127,12 @@ class CGen:
             if type(line) is If:
                 return self.gen_if(line, indent +1)
             elif type(line) is Return:
+                if type(line.value.value) is Switch:
+                    return [
+                        self.gen_switch(line.value, indent=indent +1),
+                        'return gull_expr_result;'
+                    ]
+                
                 return f'return {self.gen_expression(line.value)};'
             elif type(line) is While:
                 return f'while ({self.gen_expression(line.condition)}) {self.gen_body(line.body, indent +1)}'

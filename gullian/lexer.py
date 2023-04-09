@@ -125,6 +125,7 @@ class KeywordKind(BaseKind, Enum):
     While=                  'while'
     Break=                  'break'
     Continue=               'continue'
+    Switch=                 'switch'
     If=                     'if'
     Else=                   'else'
     Elif=                   'elif'

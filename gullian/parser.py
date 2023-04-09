@@ -191,6 +191,23 @@ class Comptime:
     @property
     def line(self):
         return self.value.line
+    
+@dataclass
+class Switch:
+    expression: "Expression"
+    branches: dict["Expression", "Expression"]
+
+    @property
+    def format(self):
+        return f'switch {self.expression.format} {{ ... }}'
+    
+    @property
+    def default_branch(self):
+        return self.branches['_'] if '_' in self.branches else list(self.branches.keys())[-1] 
+    
+    @property
+    def line(self):
+        return self.expression.line
 
 @dataclass
 class Call:
@@ -441,6 +458,8 @@ class Parser:
         elif type(expression) is Keyword:
             if expression.kind is KeywordKind.Comptime:
                 return self.parse_comptime()
+            elif expression.kind is KeywordKind.Switch:
+                return self.parse_switch()
 
             raise TypeError(f'expression must be Ast, found Keyword "{expression.format}". in line {expression.line}. at module {self.module.name}')
         
@@ -550,6 +569,8 @@ class Parser:
                     lines.append(self.parse_return())
                 elif token.kind is KeywordKind.Comptime:
                     lines.append(self.parse_comptime())
+                elif token.kind is KeywordKind.Switch:
+                    lines.append(self.parse_switch())
                 else:
                     raise NotImplementedError(f'parsing for keyword {token} is not implemented yet')
             elif type(token) is Name:
@@ -729,6 +750,31 @@ class Parser:
             return Comptime(self.parse_body())
 
         return Comptime(self.parse_expression(self.source.capture()))
+    
+    def parse_switch(self) -> Switch:
+        name = self.parse_expression(self.source.capture(), {TokenKind.LeftBrace})
+        left_brace = self.source.capture()
+
+        if not (type(left_brace) is Token and left_brace.kind is TokenKind.LeftBrace):
+            raise SyntaxError(f"expecting '{{' after switch statement head, found {left_brace}. at line {left_brace.line}, in module {self.module.name}.")
+        
+        branches = dict()
+
+        for token in self.source:
+            if type(token) is Token and token.kind is TokenKind.RightBrace:
+                break
+            elif type(token) is Token and token.kind is TokenKind.Comma:
+                continue
+
+            expression = self.parse_expression(token, {TokenKind.Colon})
+            colon = self.source.capture()
+            
+            if not (type(colon) is Token and colon.kind is TokenKind.Colon):
+                raise SyntaxError(f"expecting ':' for brach of switch, found {colon.format}. at line {colon.line}, in module {self.module.name}.")
+            
+            branches[expression] = self.parse_expression(self.source.capture(), {TokenKind.Comma, TokenKind.RightBrace})
+
+        return Switch(name, branches)
     
     def parse(self):
         for token in self.source:

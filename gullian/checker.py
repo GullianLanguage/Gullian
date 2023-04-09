@@ -748,9 +748,16 @@ class Checker:
     def check_import(self, import_: Import):
         os_module_name = import_.module_name.format.replace('.', os.sep) + '.gullian'
 
+        if 'GULLIAN_HOME' in os.environ and not os.path.isfile(os_module_name):
+            os_module_name = os.path.join(os.environ['GULLIAN_HOME'], os_module_name)
+
         if not os.path.isfile(os_module_name):
-            raise ImportError(f"can't import gullian file {import_.module_name.format}, file not found.")
+            if 'GULLIAN_HOME' in os.environ:
+                raise ImportError(f"can't import gullian module {import_.module_name.format}, file not found.")
         
+            raise ImportError(f"can't import gullian module {import_.module_name.format}, file not found. Make sure GULLIAN_HOME is set")
+
+            
         file_string = open(os_module_name).read()
         module = Module.new(import_.module_name.format)
 
@@ -762,10 +769,6 @@ class Checker:
             continue
 
         self.module.imports[import_.module_name.rightest] = checker.module
-
-        # NOTE: Disabling this can break stuff
-        # for type_name, type_value in checker.module.types.items():
-        #    self.module.types[type_name] = type_value
 
         return import_
 

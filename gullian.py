@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from argparse import ArgumentParser
 
 from gullian.source import Source

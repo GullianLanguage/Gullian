@@ -1,0 +1,17 @@
+import std.io
+
+enum TokenKind {
+    LeftParenthesis,
+    RightParenthesis,
+    Plus,
+    Minus,
+    Star,
+    Slash,
+
+}
+
+fun main() : int {
+    let token = TokenKind.LeftParenthesis
+
+    io.puts(token)
+}

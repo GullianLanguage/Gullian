@@ -1,5 +1,5 @@
 CC= clang
-GC= python main.py
+GC= python gullian.py
 
 all:
 	$(GC) examples/hello_world.gullian hello_world.c

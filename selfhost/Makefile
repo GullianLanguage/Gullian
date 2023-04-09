@@ -1,4 +1,4 @@
-GC= gullian.py
+GC= python "$(GULLIAN_HOME)/gullian.py"
 CC= clang
 
 all:

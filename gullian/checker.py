@@ -369,9 +369,10 @@ class Checker:
             return Typed(attribute, self.check_attribute(Attribute(type_.name.name, attribute.right), guarantee))
         elif attribute.left in self.module.imports:
             return attribute
-        
+    
         if type(attribute.left) is Type:
             type_ = attribute.left
+        
         elif type(attribute.left) is Typed:
             type_ = attribute.left.type_
         else:
@@ -379,14 +380,19 @@ class Checker:
 
         if type_ == PTR and type(type_.name) is Subscript:
             type_ = type_.name.items[0] if type(type_.name.items[0]) is Type else self.module.import_type(type_.name.items[0])
-
+        
+        print(type_)
         if type(type_.declaration) is EnumDeclaration:
-            return Typed(attribute.left, type_.name)
+            if attribute.right not in type_.declaration.fields:
+                raise NameError(f'{attribute.right} is not a valid attribute of enum {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
+            
+            return Typed(Attribute(Typed(attribute.left, TYPE), Typed(attribute.right, type_)), type_)
         elif type(type_.declaration) is StructDeclaration:
             type_declaration_fields_dict = dict(type_.declaration.fields)
 
             if attribute.right not in type_declaration_fields_dict:
                 raise NameError(f'{attribute.right} is not a valid attribute of struct {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
+            
             return type_declaration_fields_dict[attribute.right]
         elif type(type_.declaration) is UnionDeclaration:
             type_declaration_fields_dict = dict(type_.declaration.fields)
@@ -774,9 +780,7 @@ class Checker:
 
     def check_enum_declaration(self, enum_declaration: EnumDeclaration):
         name = enum_declaration.name
-
-        enum_declaration.name = Type.new(enum_declaration.name, enum_declaration, self.module)
-        self.module.types[name] = enum_declaration
+        self.module.types[name] = Type.new(name, enum_declaration, self.module)
 
         return enum_declaration
     

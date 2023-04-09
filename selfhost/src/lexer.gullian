@@ -13,5 +13,10 @@ enum TokenKind {
 fun main() : int {
     let token = TokenKind.LeftParenthesis
 
-    io.puts(token)
+    if token == TokenKind.RightParenthesis {
+        io.puts("true")
+    }
+    else {
+        io.puts("false")
+    }
 }

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
+from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
 from ..checker import BASIC_TYPES, Module, Type, Typed, Body
-from ..type import PTR, ANY
+from ..type import TYPE, PTR, ANY
 
 @dataclass
 class CGen:
@@ -46,6 +46,11 @@ class CGen:
         return f'{self.gen_name(variable_declaration.type_)} {self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
     
     def gen_expression(self, expression: Expression):
+        if type(expression) is Typed:
+            if type(expression.value) is Attribute:
+                if expression.left.type_ is TYPE:
+                    return f'{self.gen_name(expression.left)}__{self.gen_name(expression.right)}'
+        
         # NOTE: This is a hack, something is wrong with the typechecker
         if type(expression) is not Typed:
             return self.gen_expression(Typed(expression, ANY))
@@ -76,7 +81,8 @@ class CGen:
             return self.gen_call(expression.value)
         elif type(expression.value) is BinaryOperator:
             return f'{self.gen_expression(expression.value.left)}{expression.value.operator.format}{self.gen_expression(expression.value.right)}'
-
+        
+        
         return expression.format
     
     def gen_call(self, call: Call):
@@ -131,6 +137,12 @@ class CGen:
                 f'typedef enum {{ {generated_enum_fields} }} {generated_name}_FIELDS;',
                 f'typedef struct {{int tag; union {{{generated_fields}; }}; }} {generated_name};'
             ])
+        elif type(type_.declaration) is EnumDeclaration:
+            generated_name =  self.gen_name(type_)
+            generated_fields = ", ".join(f'{generated_name}__{self.gen_name(field_name)}' for field_name in type_.declaration.fields)
+            
+            return f'typedef enum {{ {generated_fields} }} {generated_name};'
+
 
         raise NotImplementedError(type_)
 

@@ -435,7 +435,7 @@ class Parser:
                 if not (type(right_parenthesis) is Token and right_parenthesis.kind is TokenKind.RightParenthesis):
                     raise SyntaxError(f"Empty parenthesized expression, at line {expression.line}. in module {self.module.name}")
                 
-                return self.parse_expression(expression)
+                return self.parse_expression(expression, terminals)
             
             raise TypeError(f"expression must be Ast, found Token '{expression.format}'. in line {expression.line}. at module {self.module.name}")
         elif type(expression) is Keyword:

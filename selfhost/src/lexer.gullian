@@ -10,13 +10,21 @@ enum TokenKind {
 
 }
 
+fun TokenKind.repr(self: TokenKind) : str {
+    if (self == TokenKind.LeftParenthesis) {
+        return "TokenKind.LeftParenthesis"
+    }
+    elif self == TokenKind.RightParenthesis {
+        return "TokenKind.RightParenthesis"
+    }
+
+    return "hello"
+}
+
 fun main() : int {
     let token = TokenKind.LeftParenthesis
+    let token1 = TokenKind.RightParenthesis
 
-    if token == TokenKind.RightParenthesis {
-        io.puts("true")
-    }
-    else {
-        io.puts("false")
-    }
+    io.puts(token.repr())
+    io.puts(token1.repr())
 }

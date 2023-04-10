@@ -44,7 +44,12 @@ class CGen:
 
         return f'({self.gen_name(literal.structure)}) {{ {generated_arguments} }}'
 
-    def gen_variable_declaration(self, variable_declaration: Typed[VariableDeclaration]):
+    def gen_variable_declaration(self, variable_declaration: Typed[VariableDeclaration], indent=0):
+        if type(variable_declaration.value.value.value) is Switch:
+            return [
+                self.gen_switch(variable_declaration.value.value, varname=self.gen_name(variable_declaration.name), indent=indent +1),
+            ]
+
         return f'{self.gen_name(variable_declaration.type_)} {self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
     
     def gen_expression(self, expression: Expression):
@@ -108,14 +113,14 @@ class CGen:
         
         return f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}'
     
-    def gen_switch(self, switch: Switch, indent=0):
+    def gen_switch(self, switch: Switch, varname='gull_expr_result', indent=0):
         tab = '  ' * indent
         tab_next = '  ' * (indent +1)
 
-        generated_switch_body = ''.join(f'{NEWLINE}{tab_next}{"default" if type(branch) is Name and branch.value == "_" else("case " + self.gen_expression(branch)) }: gull_expr_result = {self.gen_expression(expr)}; break;' for branch, expr in switch.value.branches.items())
+        generated_switch_body = ''.join(f'{NEWLINE}{tab_next}{"default" if type(branch) is Name and branch.value == "_" else("case " + self.gen_expression(branch)) }: {varname} = {self.gen_expression(expr)}; break;' for branch, expr in switch.value.branches.items())
 
         return ''.join([
-            f'{tab}{self.gen_name(switch.type_.name)} gull_expr_result;{NEWLINE}',
+            f'{tab}{self.gen_name(switch.type_.name)} {varname};{NEWLINE}',
             f'{tab}switch ({self.gen_expression(switch.value.expression)}) {{ {generated_switch_body}{NEWLINE}{tab}}}'
         ])
     
@@ -138,7 +143,7 @@ class CGen:
                 return f'while ({self.gen_expression(line.condition)}) {self.gen_body(line.body, indent +1)}'
 
             if type(line.value) is VariableDeclaration:
-                return self.gen_variable_declaration(line)
+                return self.gen_variable_declaration(line, indent)
             elif type(line.value) is Call:
                 return f'{self.gen_call(line.value)};'
             elif type(line.value) is Assignment:

@@ -11,13 +11,13 @@ enum TokenKind {
 }
 
 fun TokenKind.repr(self: TokenKind) : str {
-    return switch self {
+    let value: str = switch self {
         TokenKind.LeftParenthesis: "TokenKind.LeftParenthesis",
         TokenKind.RightParenthesis: "TokenKind.RightParenthesis",
         _: "..."
     }
 
-    return "(TokenKind.repr)"
+    return value
 }
 
 fun main() : int {

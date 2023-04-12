@@ -79,6 +79,11 @@ class Module:
             if name in self.types:
                 return self.types[name]
             
+            name_typed = Subscript(name.head, tuple(item if type(item) is Type else self.import_type(item) for item in name.items))
+
+            if name_typed in self.types:
+                return self.types[name_typed]
+            
             if name.head in self.types:
                 type_ = self.import_type(name.head)
 
@@ -109,11 +114,11 @@ class Module:
                 else:
                     new_type_declaration = UnionDeclaration(name, [(field_name, apply_generic(field_type)) for field_name, field_type in struct_declaration.fields], list())
 
-                generated_type = Type(name, Type.gen_uid(), dict(), new_type_declaration, self)
+                generated_type = Type(name_typed, Type.gen_uid(), dict(), new_type_declaration, self)
                 generated_type.associated_functions = {name: AssociatedFunction(generated_type, function) for name, function in type_.associated_functions.items()}
 
-                
-                self.types[name] = generated_type
+                # self.types[name] = generated_type
+                self.types[name_typed] = generated_type
 
                 return generated_type
             elif type(name.head) is Attribute:
@@ -125,50 +130,28 @@ class Module:
                 type_ = name.head
             else:
                 type_ = self.import_type(name.head)
-
-            return Type(Subscript(name.head, tuple(item if type(item) is Type else self.import_type(item) for item in name.items)), type_.uid, type_.associated_functions, type_.declaration)
+            
+            if type_.name in BASIC_TYPES:
+                if type_ == PTR:
+                    if len(name.items) > 1:
+                        raise IndexError(f'too many generic arguments for basic type ptr. expected 1, got {len(name.items)}. for {name.format}')
+                    elif len(name.items) <= 0:
+                        raise IndexError(f'too few generic arguments for basic type ptr. expected 1, got {len(name.items)}. for {name.format}')
+                    
+                    if type(name.items[0]) is Type:
+                        inner_type = name.items[0]
+                    else:
+                        inner_type = self.import_type(name.items[0])
+                    
+                    return Type(Subscript(name.head, (inner_type,)), type_.uid, type_.associated_functions | inner_type.associated_functions, inner_type.declaration)
+                
+                raise TypeError(f'Basic type {type_.name.format} is not subscriptable. for {name.format}')
+            
+            raise NotImplementedError
         
         raise TypeError(f"argument 'name' must be a Name or Attribute, found {type(name)}")
 
     def import_function(self, name: Name | Attribute):
-
-        def apply_generic_function(name, function):
-            if not function.head.generic:
-                raise TypeError(f"function {function.head.name} is not a generic function. at line {name.line}. in module {self.name}")
-
-            def apply_generic(field_type: Type):
-                if type(field_type) is Subscript:
-                    return Subscript(field_type.head, tuple(apply_generic(item) for item in field_type.items))
-
-                if field_type in function.head.generic:
-                    return name.items[function.head.generic.index(field_type)]
-                
-                return field_type
-
-            old_scope = function.head.module.scope
-            function.head.module.scope = old_scope.copy()
-                                                                                 
-            temporary_checker = Checker(tuple(), function.head.module)
-            new_function_head = FunctionHead(name, [(argument_name, apply_generic(argument_type)) for argument_name, argument_type in function.head.arguments], apply_generic(function.head.return_hint), list(), function.head.module)
-
-            # Make type aliases for check_body()
-            for type_alias, parametric_type in zip(function.head.generic, name.items):
-                function.head.module.scope.type_variables[type_alias] = parametric_type
-
-            for argument_name, argument_type in new_function_head.arguments:
-                function.head.module.scope.variables[argument_name] = FunctionArgument(argument_name, argument_type)                                              
-            new_function = FunctionDeclaration(new_function_head, copy.deepcopy(function.body))
-
-            # This is important to check_call() for methods to work properlyiif
-            if type(fun) is AssociatedFunction:
-                new_function = AssociatedFunction(function.owner, new_function)
-
-            new_function = temporary_checker.check_function_declaration(new_function)
-
-            function.head.module.scope = old_scope
-
-            return new_function_head
-
         if type(name) is Name:
             if name not in self.functions:
                 raise NameError(f'{name} is not a function of module {self.name}. at line {name.line}')
@@ -239,7 +222,7 @@ class Module:
 
             # Make type aliases for check_body()
             for type_alias, parametric_type in zip(function.head.generic, name.items):
-                function.head.module.scope.type_variables[type_alias] = parametric_type
+                function.head.module.scope.type_variables[type_alias] = self.import_type(parametric_type)
             
             for argument_name, argument_type in new_function_head.arguments:
                 function.head.module.scope.variables[argument_name] = FunctionArgument(argument_name, argument_type)
@@ -260,6 +243,15 @@ class Module:
             return new_function
         
         raise TypeError(f"argument 'name' must be a Name or Attribute, found {type(name)}")
+    
+    def import_any(self, name: Name):
+        if type(name) is not Name:
+            raise TypeError(f'argument name of Module.import_any(...) must be a Name')
+        
+        if name.value in self.functions:
+            return self.import_function(name)
+        
+        return self.import_type(name)
 
     @classmethod
     def new(cls, name='main'):
@@ -321,10 +313,8 @@ class Checker:
         function_arguments_dict = dict(function.head.arguments)
 
         # inserts self
-        if type(function) is AssociatedFunction:
+        if type(function.value) is AssociatedFunction:
             if type(call.name) is Typed:
-                print()
-                print('xxxx', function_arguments_dict['self'])
                 if function_arguments_dict['self'] == PTR:
                     call.arguments.insert(0, Typed(UnaryOperator(Token(TokenKind.Ampersand, 0), call.name.value.left), PTR))
                 else:
@@ -334,91 +324,33 @@ class Checker:
             raise ValueError(f'too many arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')
         elif len(call.arguments) < len(function.head.arguments):
             raise ValueError(f'too few arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')
-
+        
         for call_argument, (function_argument_name, function_argument_type) in zip(call.arguments, function.head.arguments):
             if not self.check_type_compatibility(call_argument.type_, function_argument_type):
-                raise TypeError(f"argument '{function_argument_name.format}' of function '{function.head.format}' must be a '{function_argument_type}' but a '{call_argument.type_}' was provided. at line {call.name.line}. in module {self.module.name}")
+                raise TypeError(f"argument '{function_argument_name.format}' of function '{function.head.format}' must be a '{function_argument_type}' but a '{call_argument.type_}' ({call_argument.format}) was provided. at line {call.name.line}. in module {self.module.name}")
         
         call.declaration = function
 
         return Typed(call, function.head.return_hint)
     
     def check_attribute(self, attribute: Attribute, guarantee=False):
-        if type(attribute.left) is Call:
-            attribute.left = self.check_call(attribute.left)
-            
+        attribute.left = self.check_expression(attribute.left)
 
-        # when attribute.left is a variable
-        elif attribute.left in self.module.scope.variables:
-            variable = self.module.scope.get_variable(attribute.left)
-            attribute.left = Typed(attribute.left, variable.type_)
-
-            if variable.type_.declaration is None:
-                type_ = self.module.import_type(variable.type_.name)
-            else:
-                type_ = variable.type_
-            
-            if attribute.right in type_.associated_functions:
-                return Typed(attribute, FUNCTION)
-
-            if type(type_.name) is Subscript:
-                return Typed(attribute, self.check_attribute(Attribute(type_, attribute.right), guarantee))
-            elif type(type_.name) is Name:
-                return Typed(attribute, self.check_attribute(Attribute(type_, attribute.right), guarantee))
-                
-            return Typed(attribute, self.check_attribute(Attribute(type_.name.name, attribute.right), guarantee))
-        elif attribute.left in self.module.imports:
-            return attribute
-    
-        if type(attribute.left) is Type:
-            type_ = attribute.left
+        if type(attribute.left) is not Typed:
+            raise RuntimeError(f'checking for {attribute.left.format} in attribute.format failed. at line {attribute.line}, in module {self.module.name}')
         
-        elif type(attribute.left) is Typed:
-            type_ = attribute.left.type_
-        else:
-            type_ = self.module.import_type(attribute.left)
+        if attribute.left.type_ == MODULE:
+            attribute.right = self.module.imports[attribute.left.value].import_any(attribute.right)
 
-        if type_ == PTR and type(type_.name) is Subscript:
-            type_ = type_.name.items[0] if type(type_.name.items[0]) is Type else self.module.import_type(type_.name.items[0])
+            return Typed(attribute, type_=attribute.right.type_)
         
-        print(type_)
-        if type(type_.declaration) is EnumDeclaration:
-            if attribute.right not in type_.declaration.fields:
-                raise NameError(f'{attribute.right} is not a valid attribute of enum {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
-            
-            return Typed(Attribute(Typed(attribute.left, TYPE), Typed(attribute.right, type_)), type_)
-        elif type(type_.declaration) is StructDeclaration:
-            type_declaration_fields_dict = dict(type_.declaration.fields)
-
-            if attribute.right not in type_declaration_fields_dict:
-                raise NameError(f'{attribute.right} is not a valid attribute of struct {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
-            
-            return type_declaration_fields_dict[attribute.right]
-        elif type(type_.declaration) is UnionDeclaration:
-            type_declaration_fields_dict = dict(type_.declaration.fields)
-
-            if attribute.right not in type_declaration_fields_dict:
-                if attribute.right in type_.associated_functions:
-                    return type_.associated_functions[attribute.right]
-
-                raise NameError(f'{attribute.right} is not a valid attribute of union {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
-            
-            if not guarantee:
-                if Attribute(type_, attribute.right) not in self.module.scope.type_guards:
-                    raise Exception(f"you can't access the union attribute '{attribute.right.format}' without a test_guard, it may be unitialized. at line {attribute.right.line}. in module {self.module.name}")
-
-            return type_declaration_fields_dict[attribute.right]
-        elif type_.name in BASIC_TYPES:
-            if attribute.right not in type_.associated_functions:
-                raise NameError(f'{attribute.right} is not a a associated function of type {type_.name.format}. at line {attribute.line}. in module {self.module.name}')
-            
-            # NOTE: May cause trouble
-            return Typed(attribute, FUNCTION)
-        else:
-            raise NotImplementedError(type_)
-
-        raise NotImplementedError
-    
+        try:
+            attribute_right_type = attribute.left.type_.import_any(attribute.right)
+        except AttributeError as e:
+            raise AttributeError(f'{e}. at line {attribute.line}, in module {self.module.name}')
+        
+        return Typed(attribute, attribute_right_type)
+        
     #NOTE: Only works for indexing
     def check_subscript(self, subscript: Subscript):
         subscript.items = tuple(self.check_expression(item) for item in subscript.items)
@@ -559,7 +491,6 @@ class Checker:
             
             if expression in self.module.scope.type_variables:
                 type_variable = self.module.scope.get_type_variable(expression)
-                type_variable = self.module.import_type(type_variable)
 
                 return Typed(type_variable, type_variable.type_)
 
@@ -587,7 +518,7 @@ class Checker:
                 variable = self.module.scope.get_variable(expression.expression)
 
                 # NOTE: May cause trouble
-                return Typed(expression, Type(Subscript(PTR, (variable.type_,)), PTR.uid, PTR.associated_functions, variable.type_.declaration))
+                return Typed(expression, Type(Subscript(PTR, (variable.type_,)), PTR.uid, PTR.associated_functions | variable.type_.associated_functions, variable.type_.declaration))
             
             return self.check_unary_operator(expression)
         elif type(expression) is BinaryOperator:
@@ -651,7 +582,7 @@ class Checker:
 
         if not self.check_type_compatibility(type_, assignment.value.type_):
             raise TypeError(f"type mismatch variable or field '{assignment.name.format}' expects '{type_.format}', got a {assignment.value.type_}. at line {assignment.line} in module {self.module.name}")
-
+        
         return Typed(assignment, type_)
 
     def check_body(self, body: Body, return_type: Type):
@@ -687,16 +618,16 @@ class Checker:
         generic = function_declaration.head.generic
 
         if not generic:
-            function_declaration.head.return_hint = self.module.import_type(function_declaration.head.return_hint)
             function_declaration.head.arguments = [(argument_name, self.module.import_type(argument_hint)) for argument_name, argument_hint in function_declaration.head.arguments]
-
+            function_declaration.head.return_hint = self.module.import_type(function_declaration.head.return_hint)
+            
         if type(function_declaration.head.name) is Attribute:
             if function_declaration.head.name.left in self.module.types:
                 type_ = self.module.import_type(function_declaration.head.name.left)
-                type_.associated_functions[function_declaration.head.name.right] = AssociatedFunction(type_, function_declaration)
+                type_.associated_functions[function_declaration.head.name.right] = Typed(AssociatedFunction(type_, function_declaration), type_=FUNCTION)
             elif function_declaration.head.name.left in BASIC_TYPES:
                 type_ = self.module.import_type(function_declaration.head.name.left)
-                type_.associated_functions[function_declaration.head.name.right] = AssociatedFunction(type_, function_declaration)
+                type_.associated_functions[function_declaration.head.name.right] = Typed(AssociatedFunction(type_, function_declaration), type_=FUNCTION)
             else:
                 raise Exception(f"associating functions to external types is forbidden. in module {self.module.name}")
         elif type(function_declaration.head.name) is Subscript:
@@ -705,13 +636,13 @@ class Checker:
             if type(attribute) is Attribute:
                 if attribute.left in self.module.types:
                     type_ = self.module.import_type(attribute.left)
-                    type_.associated_functions[attribute.right] = AssociatedFunction(type_, function_declaration)
+                    type_.associated_functions[attribute.right] = Typed(AssociatedFunction(type_, function_declaration), type_=FUNCTION)
                 else:
                     raise Exception(f"associating functions to external types is forbidden. tried to associate to '{attribute.left.format}' in module {self.module.name}")
             else:
-                self.module.functions[function_declaration.head.name.head] = function_declaration
+                self.module.functions[function_declaration.head.name.head] = Typed(function_declaration, type_=FUNCTION)
         else:
-            self.module.functions[function_declaration.head.name] = function_declaration
+            self.module.functions[function_declaration.head.name] = Typed(function_declaration, type_=FUNCTION)
 
         if not generic:
             for argument_name, argument_type in function_declaration.head.arguments:
@@ -721,7 +652,7 @@ class Checker:
 
         self.module.scope = old_scope
 
-        return function_declaration
+        return Typed(function_declaration, type_=FUNCTION)
     
     def check_if(self, if_: If, return_type: Type):
         old_scope = self.module.scope
@@ -757,9 +688,9 @@ class Checker:
         if type(extern.head.name) is Attribute:
             raise NameError(f'extern functions must have flat names')
         else:
-            self.module.functions[extern.head.name] = extern
+            self.module.functions[extern.head.name] = Typed(extern, type_=FUNCTION)
 
-        return extern
+        return Typed(extern, type_=FUNCTION)
     
     def check_import(self, import_: Import):
         os_module_name = import_.module_name.format.replace('.', os.sep) + '.gullian'

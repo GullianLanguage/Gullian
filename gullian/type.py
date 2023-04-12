@@ -30,6 +30,18 @@ class Type(Generic[T]):
             return self.uid == value.uid
         
         return False
+    
+    def import_any(self, name: Name):
+        if type(name) is not Name:
+            raise TypeError(f'argument name of Module.import_any(...) must be a Name')
+        
+        if name.value in self.associated_functions:
+            return self.associated_functions[name]
+        
+        if self.declaration is not None and name.value in (fields_dict := dict(self.declaration.fields)):
+            return fields_dict[name]
+        
+        raise AttributeError(f'Type {self.name.format} does not contains a member called {name}')
 
     @property
     def type_(self):

@@ -37,9 +37,13 @@ class Type(Generic[T]):
         
         if name.value in self.associated_functions:
             return self.associated_functions[name]
-        
-        if self.declaration is not None and name.value in (fields_dict := dict(self.declaration.fields)):
-            return fields_dict[name]
+
+        if self.declaration is not None:
+            if name.value in self.declaration.fields:
+                return self.declaration.fields[self.declaration.fields.index(name)]
+
+            elif name.value in (fields_dict := dict(self.declaration.fields)):
+                return fields_dict[name]
         
         raise AttributeError(f'Type {self.name.format} does not contains a member called {name}')
 

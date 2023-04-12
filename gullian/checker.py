@@ -266,6 +266,11 @@ class Checker:
     module: Module
 
     def check_type_compatibility(self, left: Type, right: Type, *, swap_order=True):
+        if type(left) is Typed:
+            left = left.value
+        if type(right) is Typed:
+            right = right.value
+
         if type(left) is not Type:
             raise TypeError(f"left must be a Type. got {left}. line {left.line}")
         elif type(right) is not Type:
@@ -343,13 +348,20 @@ class Checker:
             attribute.right = self.module.imports[attribute.left.value].import_any(attribute.right)
 
             return Typed(attribute, type_=attribute.right.type_)
+        elif attribute.left.type_ == TYPE:
+            if type(attribute.left.declaration) is EnumDeclaration:
+                attribute.right = Typed(attribute.right, type_=attribute.left)
+            else:
+                attribute.right = Typed(attribute.right, type_=attribute.left.import_any(attribute.right))
+
+            return Typed(attribute, type_=attribute.right.type_)
         
         try:
             attribute_right_type = attribute.left.type_.import_any(attribute.right)
         except AttributeError as e:
             raise AttributeError(f'{e}. at line {attribute.line}, in module {self.module.name}')
         
-        return Typed(attribute, attribute_right_type)
+        return Typed(attribute, type_=attribute_right_type)
         
     #NOTE: Only works for indexing
     def check_subscript(self, subscript: Subscript):

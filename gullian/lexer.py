@@ -269,7 +269,7 @@ class Lexer:
             if char == '\n':
                 self.line += 1
                 continue
-            elif char == ' ':
+            elif char == ' ' or char == '\t':
                 continue
             
             if char == '#':

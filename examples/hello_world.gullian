@@ -3,10 +3,10 @@ import std.io
 import std.fmt
 
 fun main() : int {
-    let fruits = vec.new[str]("apple")
+    let fruits = vec.new("apple")
 
-    fruits.push[str]("banana")
-    fruits.push[str]("pear")
+    fruits.push("banana")
+    fruits.push("pear")
 
     let i = 0
     while i < fruits.length {

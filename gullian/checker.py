@@ -54,6 +54,10 @@ class Module:
     scope: Scope
     
     def import_type(self, name: Name | UnaryOperator):
+        # FIXME: weird hack
+        if type(name) is Type:
+            return name
+        
         if type(name) is UnaryOperator and name.operator.kind is TokenKind.Ampersand:
             return Type(Subscript(PTR, (name.expression,)), PTR.uid, PTR.associated_functions)
 
@@ -222,6 +226,10 @@ class Module:
 
             # Make type aliases for check_body()
             for type_alias, parametric_type in zip(function.head.generic, name.items):
+                if type(parametric_type) is Type:
+                    function.head.module.scope.type_variables[type_alias] = parametric_type
+                    continue
+
                 function.head.module.scope.type_variables[type_alias] = self.import_type(parametric_type)
             
             for argument_name, argument_type in new_function_head.arguments:
@@ -302,6 +310,58 @@ class Checker:
         function: FunctionDeclaration = self.module.import_function(call.name)
         function_arguments_dict = dict(function.head.arguments)
 
+        if not call.generics and function.head.generic:
+            def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression):
+                if type(pattern) is Name:
+                    if pattern in type_vars:
+                        return {pattern: type_}
+                    
+                    raise Exception(f'pattern unmatch {type_.format} ! {pattern.format}')
+                elif type(pattern) is Subscript:
+                    type_vars_types = dict()
+
+                    if type(type_) is Type:
+                        if type_ is STR and (pattern.head is PTR or pattern.head == PTR.name):
+                            return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern)
+                        
+                        if type(type_.name) is Subscript:
+                            type_ = type_.name
+                        else:
+                            raise TypeError(f'{type_} ? {pattern}. in module {self.module.name} at line {pattern.line}')
+                    
+                    for k, v in zip(type_.items, pattern.items):
+                        type_vars_types.update(match_pattern(type_vars, k, v))
+                    
+                    return type_vars_types
+                
+                return {}
+            
+            arguments = list(call.arguments)
+
+            if type(function) is AssociatedFunction:
+                if dict(function.head.arguments)['self'].head == PTR.name:
+                    arguments.insert(0, Type.new(Subscript(PTR, (function.owner,)), PTR.declaration, PTR.module))
+                else:
+                    arguments.insert(0, function.owner)
+
+            arguments_types = list(arg if type(arg) is Type else self.check_expression(arg).type_  for arg in arguments)
+            arguments_pattern = tuple(v for _, v in function.head.arguments)
+
+            matched = match_pattern(set(function.head.generic), Subscript(Name('function'), tuple(arguments_types)), Subscript(Name('function'), tuple(arguments_pattern)))
+            
+            if matched:
+                return self.check_call(
+                    Call(
+                        call.name,
+                        call.arguments,
+                        tuple(matched[type_var] for type_var in function.head.generic),
+                        call.declaration,
+                    )
+                )
+
+            raise ValueError(f"the called function is generic, you must specify its type parameters in the callee '{call.format}'. at line {call.line} in module {self.module.name}")
+
+
         call.name = self.check_expression(call.name)    
         call.arguments = [self.check_expression(argument) for argument in call.arguments]
         call.declaration = function
@@ -312,9 +372,7 @@ class Checker:
                 function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.head.rightest), tuple(call.generics)))
             else:
                 function = function.head.module.import_function(Subscript(function.head.name.head, tuple(call.generics)))
-        elif function.head.generic:
-            raise ValueError(f"the called function is generic, you must specify its type parameters in the callee '{call.format}'. at line {call.line} in module {self.module.name}")
-
+        
         function_arguments_dict = dict(function.head.arguments)
 
         # inserts self
@@ -537,6 +595,11 @@ class Checker:
             return self.check_binary_operator(expression)
         elif type(expression) is TestGuard:
             return self.check_test_guard(expression)
+        
+        if type(expression) is Type:
+            return expression
+        elif type(expression) is Typed:
+            return expression
 
         raise NotImplementedError(f"can't check the type of {expression}. at line {expression.line}. in module {self.module.name}")
 

@@ -154,7 +154,7 @@ class Module:
             
             raise NotImplementedError
         
-        raise TypeError(f"argument 'name' must be a Name or Attribute, found {type(name)}")
+        raise TypeError(f"argument 'name' must be a Name or Attribute, found {name}")
 
     def import_function(self, name: Name | Attribute):
         if type(name) is Name:
@@ -170,6 +170,24 @@ class Module:
                 temporary_checker = Checker(None, self)
 
                 name.left = temporary_checker.check_attribute(name.left)
+
+                if name.left.type_.module is None:
+                    return self.import_function(Attribute(name.left.type_.name, name.right))
+
+                return name.left.type_.module.import_function(Attribute(name.left.type_.name, name.right))
+            elif type(name.left) is Call:
+                temporary_checker = Checker(None, self)
+
+                name.left = temporary_checker.check_call(name.left)
+
+                if name.left.type_.module is None:
+                    return self.import_function(Attribute(name.left.type_.name, name.right))
+
+                return name.left.type_.module.import_function(Attribute(name.left.type_.name, name.right))
+            elif type(name.left) is Literal:
+                temporary_checker = Checker(None, self)
+
+                name.left = temporary_checker.check_expression(name.left)
 
                 if name.left.type_.module is None:
                     return self.import_function(Attribute(name.left.type_.name, name.right))
@@ -350,12 +368,12 @@ class Checker:
                     arguments.insert(0, Type.new(Subscript(PTR, (function.owner,)), PTR.declaration, PTR.module))
                 else:
                     arguments.insert(0, function.owner)
-
+            
             arguments_types = list(arg if type(arg) is Type else self.check_expression(arg).type_  for arg in arguments)
             arguments_pattern = tuple(v for _, v in function.head.arguments)
 
             matched = match_pattern(set(function.head.generic), Subscript(Name('function'), tuple(arguments_types)), Subscript(Name('function'), tuple(arguments_pattern)))
-            
+        
             if matched:
                 return self.check_call(
                     Call(
@@ -583,6 +601,8 @@ class Checker:
                 return Typed(expression, INT)
             elif type(expression.value) is float:
                 return Typed(expression, FLOAT)
+            elif type(expression.value) is bool:
+                return Typed(expression, BOOL)
         elif type(expression) is Call:
             return self.check_call(expression)
         elif type(expression) is Attribute:
@@ -790,19 +810,35 @@ class Checker:
                 raise ImportError(f"can't import gullian module {import_.module_name.format}, file not found.")
         
             raise ImportError(f"can't import gullian module {import_.module_name.format}, file not found. Make sure GULLIAN_HOME is set")
+        
 
+        module_name_formated = import_.module_name.format
+
+        def recurse_check_import(module_name_formated: str, module: Module):
+            if module.name == module_name_formated:
+                return module
             
-        file_string = open(os_module_name).read()
-        module = Module.new(import_.module_name.format)
+            for imported_module in module.imports.values():
+                if recycle_module := recurse_check_import(module_name_formated, imported_module):
+                    return recycle_module
 
-        tokens = tuple(Lexer(Source(file_string), module).lex())
-        asts = tuple(Parser(Source(tokens), module).parse())
-        checker = Checker(asts, module)
+            return None
+        
+        if recycle_module := recurse_check_import(import_.module_name.format, self.module):
+            module = recycle_module
+        else:
+            
+            file_string = open(os_module_name).read()
+            module = Module.new(import_.module_name.format)
 
-        for _ in checker.check():
-            continue
+            tokens = tuple(Lexer(Source(file_string), module).lex())
+            asts = tuple(Parser(Source(tokens), module).parse())
+            checker = Checker(asts, module)
 
-        self.module.imports[import_.module_name.rightest] = checker.module
+            for _ in checker.check():
+                continue
+
+        self.module.imports[import_.module_name.rightest] = module
 
         return import_
 

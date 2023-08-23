@@ -76,6 +76,12 @@ class GenericType:
 
     def __repr__(self):
         return f'GenericType({self.name})'
+    
+    def __hash__(self):
+        return hash(self.name)
+    
+    def __eq__(self, value: str):
+        return self.name == value
 
     @property
     def format(self):

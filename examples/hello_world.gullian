@@ -1,6 +1,7 @@
 import std.vec
 import std.io
 import std.fmt
+import std.err
 
 fun main() : int {
     let fruits = vec.new("apple")
@@ -17,4 +18,9 @@ fun main() : int {
 
     let x: int = str
     io.puts(x.to_string())
+
+    let y = err.ok(x)
+
+    io.puts(y.to_string())
+    io.puts(fruits.has("pear").to_string())
 }

@@ -1,10 +1,15 @@
 extern fun exit(code: int) : void
 
 import std.io
+import std.fmt
 
 union Result[T, E] {
     ok: T,
     err: E
+}
+
+fun panic(message: str) : void {
+    io.puts("panic: ".cat(message))
 }
 
 fun Result.unwrap[T, E](self: Result[T, E]) : T {
@@ -13,8 +18,26 @@ fun Result.unwrap[T, E](self: Result[T, E]) : T {
     }
 
     if self.err? {
-        io.puts(self.err)
+        panic(self.err.to_string())
     }
 
     exit(-1)
+}
+
+fun Result.to_string[T, E](self: Result[T, E]) : E {
+    if self.ok? {
+        return self.ok.to_string()
+    }
+
+    if self.err? {
+        return self.err.to_string()
+    }
+
+    return "error"
+}
+
+fun ok[T](value: T) : Result[T, str] {
+    return Result[T, str] {
+        value
+    }
 }

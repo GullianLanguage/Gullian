@@ -42,6 +42,14 @@ fun u16.to_string(self: int) : str {
     return buffer
 }
 
+fun bool.to_string(self: bool) : str {
+    if self {
+        return "true"
+    }
+
+    return "false"
+}
+
 fun int.to_string(self: int) : str {
     if self == 0 {
         return "0"
@@ -64,4 +72,12 @@ fun float.to_string(self: float) : str {
     sprintf(buffer, "%f", self)
 
     return buffer
+}
+
+fun str.cat(self: str, value: str) : str {
+    return cat(self, value)
+}
+
+fun str.to_string(self: str) : str {
+    return self
 }

@@ -1,5 +1,4 @@
 import std.io
-import std.option
 
 enum TokenKind {
     LeftParenthesis,
@@ -8,18 +7,38 @@ enum TokenKind {
     Minus,
     Star,
     Slash,
-
+    Name,
+    Bool,
+    Int,
+    Float,
+    String,
 }
 
 fun TokenKind.repr(self: TokenKind) : str {
     let value: str = switch self {
-        TokenKind.LeftParenthesis: "TokenKind.LeftParenthesis",
-        TokenKind.RightParenthesis: "TokenKind.RightParenthesis",
+        LeftParenthesis => "LeftParenthesis",
+        RightParenthesis => "LeftParenthesis",
+        Plus => "LeftParenthesis",
+        Minus => "LeftParenthesis",
+        Star => "LeftParenthesis",
+        Slash => "LeftParenthesis",
+        Name => "LeftParenthesis",
+        Bool => "LeftParenthesis",
+        Int => "LeftParenthesis",
+        Float => "LeftParenthesis",
+        String => "LeftParenthesis",
         _: "..."
     }
 
     return value
 }
+
+struct Token {
+    kind: TokenKind,
+    begin: u16,
+    end: u16
+}
+
 
 fun main() : int {
     let token = option.some(TokenKind.LeftParenthesis)

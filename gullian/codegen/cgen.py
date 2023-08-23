@@ -68,6 +68,11 @@ class CGen:
         if type(expression.value) is Literal:
             if type(expression.value.value) is str:
                 return f'"{expression.value.value}"'
+            elif type(expression.value.value) is bool:
+                if expression.value.value:
+                    return "true"
+                
+                return "false"
             
             return expression.value.format
         elif type(expression.value) is Name:
@@ -190,11 +195,19 @@ class CGen:
 
     def gen_extern(self, extern_):
         return f'// extern: {extern_.format}'
+    
+    def gen_function_prototype(self, function_declaration: FunctionDeclaration):
+        return f'{self.gen_function_head(function_declaration.head)};'
 
     def gen_function(self, function_declaration: FunctionDeclaration):
         return f'{self.gen_function_head(function_declaration.head)} {self.gen_body(function_declaration.body)}'
 
-    def gen(self):
+    def gen(self, generated_modules: list[str]=[]):
+        if self.module.name in generated_modules:
+            return
+        
+        generated_modules.append(self.module.name)
+
         for include in self.module.includes:
             yield include
 
@@ -212,19 +225,36 @@ class CGen:
             yield '#define u32 uint32_t'
             yield '#define str char*'
             yield '#define ptr char*'
-
-            for basic_type in BASIC_TYPES.values():
-                for function in basic_type.associated_functions.values():
-                    yield self.gen_function(function)
-        
-        for module in self.module.imports.values():
-            cgen = CGen(module)
-            yield from cgen.gen()
         
         for type_ in self.module.types.values():
             if not type_.declaration.generic:
                 yield self.gen_type(type_)
 
+            for function in type_.associated_functions.values():
+                if type(function.head.return_hint) is Type:
+                    yield self.gen_function_prototype(function)
+        
+        if self.module.name == 'main':
+            for basic_type in BASIC_TYPES.values():
+                for function in basic_type.associated_functions.values():
+                    yield f'// associated method of type`{basic_type.format}`'
+                    yield self.gen_function_prototype(function)
+
+        for function in self.module.functions.values():
+            if type(function.value) is not Extern:
+                if not function.head.generic:
+                    yield self.gen_function_prototype(function)
+        
+        for module in self.module.imports.values():
+            cgen = CGen(module)
+            yield from cgen.gen(generated_modules)
+
+        if self.module.name == 'main':
+            for basic_type in BASIC_TYPES.values():
+                for function in basic_type.associated_functions.values():
+                    yield self.gen_function(function)
+        
+        for type_ in self.module.types.values():
             for function in type_.associated_functions.values():
                 if type(function.head.return_hint) is Type:
                     yield self.gen_function(function)

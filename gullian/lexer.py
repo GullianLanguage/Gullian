@@ -248,7 +248,7 @@ class Lexer:
         
         return Literal(value, self.line)
     
-    def scan_name(self, value: str) -> Literal:
+    def scan_name(self, value: str) -> Name:
         for char in self.source:
             if char == '_' or char >= 'a' and char <= 'z' or char >= 'A' and char <= 'Z' or char >= '0' and char <= '9':
                 value += char
@@ -282,7 +282,11 @@ class Lexer:
             elif char >= 'a' and char <= 'z':
                 name = self.scan_name(char)
 
-                if name.value in KEYWORDKIND_SORTED:
+                if name == "true":
+                    yield Literal(True, self.line)
+                elif name == "false":
+                    yield Literal(False, self.line)
+                elif name.value in KEYWORDKIND_SORTED:
                     yield Keyword(KeywordKind(name.value), self.line)
                 else:
                     yield name

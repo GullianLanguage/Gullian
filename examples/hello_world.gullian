@@ -16,11 +16,8 @@ fun main() : int {
 
     }
 
-    let x: int = str
-    io.puts(x.to_string())
+    let y: err.Result[int, str] = err.fail("hello")
+    y.unwrap()
 
-    let y = err.ok(x)
-
-    io.puts(y.to_string())
     io.puts(fruits.has("pear").to_string())
 }

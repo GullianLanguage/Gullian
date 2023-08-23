@@ -35,7 +35,7 @@ class CGen:
         return f'{self.gen_name(function_head.return_hint)} {self.gen_name(function_head.name)}({generated_parameters})'
     
     def gen_literal(self, literal: StructLiteral):
-        generated_arguments = ", ".join(self.gen_expression(argument) for argument in literal.arguments)
+        generated_arguments = ", ".join(self.gen_expression(argument.value[1]) if type(argument.value) is tuple else  self.gen_expression(argument) for argument in literal.arguments)
 
         if type(literal.structure.declaration) is UnionDeclaration:
             x = tuple(field for _, field in literal.structure.declaration.fields).index(literal.arguments[0].type_)

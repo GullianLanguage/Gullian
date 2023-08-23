@@ -38,6 +38,12 @@ fun Result.to_string[T, E](self: Result[T, E]) : E {
 
 fun ok[T](value: T) : Result[T, str] {
     return Result[T, str] {
-        value
+        ok: value
+    }
+}
+
+fun fail[T, E](error: E) : Result[T, E] {
+    return Result[T, E] {
+        err: error
     }
 }

@@ -331,12 +331,12 @@ class Checker:
         
         return left == right
 
-    def check_call(self, call: Call):
+    def check_call(self, call: Call, expected_type: Type=None):
         function: FunctionDeclaration = self.module.import_function(call.name)
         function_arguments_dict = dict(function.head.arguments)
 
         if not call.generics and function.head.generic:
-            def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression):
+            def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression, depth=0):
                 if type(pattern) is Name:
                     if pattern in type_vars:
                         return {pattern: type_}
@@ -347,7 +347,7 @@ class Checker:
 
                     if type(type_) is Type:
                         if type_ is STR and (pattern.head is PTR or pattern.head == PTR.name):
-                            return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern)
+                            return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern, depth +1)
                         
                         if type(type_.name) is Subscript:
                             type_ = type_.name
@@ -355,7 +355,8 @@ class Checker:
                             raise TypeError(f'{type_} ? {pattern}. in module {self.module.name} at line {pattern.line}')
                     
                     for k, v in zip(type_.items, pattern.items):
-                        type_vars_types.update(match_pattern(type_vars, k, v))
+                        type_vars_types.update(match_pattern(type_vars, k, v, depth +1))
+                
                     
                     return type_vars_types
                 
@@ -373,7 +374,12 @@ class Checker:
             arguments_pattern = tuple(v for _, v in function.head.arguments)
 
             matched = match_pattern(set(function.head.generic), Subscript(Name('function'), tuple(arguments_types)), Subscript(Name('function'), tuple(arguments_pattern)))
-        
+
+            if expected_type and expected_type.declaration is not None:
+                matched.update(match_pattern(set(function.head.generic), Subscript(Name('type'), (expected_type,)), Subscript(Name('type'), (function.head.return_hint,))))
+
+            print(matched, expected_type)
+
             if matched:
                 return self.check_call(
                     Call(
@@ -381,7 +387,8 @@ class Checker:
                         call.arguments,
                         tuple(matched[type_var] for type_var in function.head.generic),
                         call.declaration,
-                    )
+                    ),
+                    expected_type
                 )
 
             raise ValueError(f"the called function is generic, you must specify its type parameters in the callee '{call.format}'. at line {call.line} in module {self.module.name}")
@@ -499,9 +506,18 @@ class Checker:
     
     def check_union_literal(self, struct_literal: StructLiteral):
         type_ = self.module.import_type(struct_literal.name)
+        declaration_fields =  dict(type_.declaration.fields)
 
         struct_literal.structure = type_
-        struct_literal.arguments = [self.check_expression(argument) for argument in struct_literal.arguments]
+        arguments = []
+        
+        for argument in struct_literal.arguments:
+            if type(argument) is tuple:
+                arguments.append(Typed((argument[0], self.check_expression(argument[1])), declaration_fields[argument[0]]))
+            else:
+                raise NotImplementedError
+
+        struct_literal.arguments = arguments
 
         if len(struct_literal.arguments) > 1:
             raise ValueError(f'too many arguments for union literal "{struct_literal.format}", expected 1, got {len(struct_literal.arguments)}. at line {struct_literal.line}. in module {self.module.name}')
@@ -570,7 +586,7 @@ class Checker:
 
         return Typed(test_guard, BOOL)
 
-    def check_expression(self, expression: Expression):
+    def check_expression(self, expression: Expression, expected_type: Type=None):
         if type(expression) is Comptime:
             return self.check_comptime(expression)
         elif type(expression) is Switch:
@@ -604,7 +620,7 @@ class Checker:
             elif type(expression.value) is bool:
                 return Typed(expression, BOOL)
         elif type(expression) is Call:
-            return self.check_call(expression)
+            return self.check_call(expression, expected_type)
         elif type(expression) is Attribute:
             return self.check_attribute(expression)
         elif type(expression) is Subscript:
@@ -656,12 +672,14 @@ class Checker:
         return Typed(switch, switch.default_branch.type_)
     
     def check_variable_declaration(self, variable_declaration: VariableDeclaration):
-        variable_declaration.value = self.check_expression(variable_declaration.value)
-
+        
         if variable_declaration.hint is None:
+            variable_declaration.value = self.check_expression(variable_declaration.value)
             variable_declaration.hint = variable_declaration.value.type_
         else:
             variable_declaration.hint = self.module.import_type(variable_declaration.hint)
+            variable_declaration.value = self.check_expression(variable_declaration.value, variable_declaration.hint)
+            
         
         variable_declaration = Typed(variable_declaration, variable_declaration.hint)
 
@@ -706,7 +724,7 @@ class Checker:
             elif type(line) is Assignment:
                 return self.check_assignment(line)
             elif type(line) is Call:
-                return self.check_call(line)
+                return self.check_call(line, return_type)
             elif type(line) is Keyword:
                 if line.kind is KeywordKind.Break:
                     return line

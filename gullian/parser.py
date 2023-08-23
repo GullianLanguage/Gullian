@@ -230,7 +230,7 @@ class Call:
 @dataclass
 class StructLiteral:
     name: Name
-    arguments: list["Expression"]
+    arguments: list["Expression | tuple[Name, Expression]"]
     structure: StructDeclaration=None
 
     @property
@@ -373,6 +373,20 @@ class Parser:
                 break
             elif type(token) is Token and token.kind is TokenKind.Comma:
                 continue
+
+            if type(token) is Name:
+                next_token = self.source.capture()
+
+                if type(next_token) is Token:
+                    if next_token.kind is TokenKind.Comma:
+                        arguments.append(token)
+                        continue
+
+                    elif next_token.kind is TokenKind.Colon:
+                        arguments.append((token, self.parse_expression(self.source.capture())))
+                        continue
+
+                self.source.release()
 
             arguments.append(self.parse_expression(token))
 

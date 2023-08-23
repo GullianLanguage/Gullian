@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator
+from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator, UnaryOperator
 from ..checker import BASIC_TYPES, Module, Type, Typed, Body
 from ..type import TYPE, PTR, ANY
 
@@ -90,7 +90,8 @@ class CGen:
             return f'{self.gen_expression(expression.value.left)}{expression.value.operator.format}{self.gen_expression(expression.value.right)}'
         elif type(expression.value) is Switch:
             raise RuntimeError(f'switch is special, and must be generated before gen_expression()')
-        
+        elif type(expression.value) is UnaryOperator:
+            return f'{expression.value.operator.format}{self.gen_expression(expression.value.expression)}'
         return expression.format
     
     def gen_call(self, call: Call):
@@ -194,13 +195,21 @@ class CGen:
         return f'{self.gen_function_head(function_declaration.head)} {self.gen_body(function_declaration.body)}'
 
     def gen(self):
+        for include in self.module.includes:
+            yield include
+
         if self.module.name == 'main':
+            yield '#include <stddef.h>'
+            yield '#include <stdint.h>'
             yield '#include <stdbool.h>'
             yield '#include <malloc.h>'
             yield '#include <string.h>'
             yield '#include <stdlib.h>'
             yield '#include <stdio.h>'
-            
+
+            yield '#define u8 uint8_t'
+            yield '#define u16 uint16_t'
+            yield '#define u32 uint32_t'
             yield '#define str char*'
             yield '#define ptr char*'
 

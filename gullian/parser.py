@@ -571,6 +571,8 @@ class Parser:
                     lines.append(self.parse_comptime())
                 elif token.kind is KeywordKind.Switch:
                     lines.append(self.parse_switch())
+                elif token.kind is KeywordKind.Break:
+                    lines.append(token)
                 else:
                     raise NotImplementedError(f'parsing for keyword {token} is not implemented yet')
             elif type(token) is Name:
@@ -793,6 +795,8 @@ class Parser:
                     yield self.parse_function_declaration()
                 elif token.kind is KeywordKind.Comptime:
                     yield self.parse_comptime()
+                elif token.kind is KeywordKind.Let:
+                    yield self.parse_variable_declaration()
                 else:
                     raise NotImplementedError(f'parsing for keyword {token} is not implemented yet')
             elif type(token) is Comment:

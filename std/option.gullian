@@ -1,0 +1,10 @@
+union Option<T> {
+    none,
+    some: T
+}
+
+fun some[T]() : Option[T] {
+    return Option {
+        some: T
+    }
+}

@@ -1,5 +1,5 @@
 GC= python "$(GULLIAN_HOME)/gullian.py"
-CC= clang
+CC= gcc
 
 all:
 	$(GC) src/lexer.gullian target/lexer.c

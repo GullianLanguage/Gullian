@@ -63,6 +63,7 @@ TOKENKIND_SORTED = sorted(TokenKind.__members__.values(), key=lambda member: len
 
 TOKENKIND_UNARYOPERATORS = {
     TokenKind.Interrogation,
+    TokenKind.Exclamation,
     TokenKind.Plus,
     TokenKind.Minus,
     TokenKind.Star,
@@ -144,6 +145,10 @@ class Keyword:
     @property
     def format(self):
         return self.kind.value
+    
+    @property
+    def value(self):
+        return self
 
 @dataclass
 class Comment:

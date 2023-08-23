@@ -1,0 +1,36 @@
+#include <SDL/sdl2.h>
+
+import std.mem
+import std.io
+import std.fmt
+
+struct SDL_Window {}
+struct SDL_Renderer {}
+
+struct SDL_Event {
+    type: u16
+}
+
+extern fun SDL_CreateWindow(title: str, x: int, y: int, width: int, height: int, flags: int) : ptr[SDL_Window]
+extern fun SDL_PollEvent(event: ptr[SDL_Event]) : bool
+extern fun SDL_CreateRenderer(window: ptr[SDL_Window], index: int, flags: u32) : ptr[SDL_Renderer]
+
+fun main() : void {
+    let window = SDL_CreateWindow("hello", 0, 0, 800, 600, 0)
+    let renderer = SDL_CreateRenderer(window, -1, 0)
+
+    let event: ptr[SDL_Event] = mem.malloc(1024)
+    let running = 1
+
+    while running {
+        while SDL_PollEvent(event) {
+
+            io.puts(event.type.to_string())
+
+            if event.type == 256 {
+                running = 0
+                break
+            }
+        }
+    }
+}

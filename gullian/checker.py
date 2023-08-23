@@ -6,7 +6,7 @@ import copy
 from .type import *
 
 from .source import Source
-from .lexer import Lexer, Name, Literal, Token, TokenKind, Comment
+from .lexer import Lexer, Name, Literal, Token, TokenKind, Comment, Keyword, KeywordKind
 from .parser import Ast, TypeDeclaration, Expression
 from .parser import Parser, FunctionDeclaration, FunctionHead, Extern, Import, EnumDeclaration, StructDeclaration, UnionDeclaration, VariableDeclaration, Assignment, Body, While, If, Return, Comptime, Switch, Call, Attribute, Subscript, StructLiteral, UnaryOperator, BinaryOperator, TestGuard
 from .interpreter import Interpreter
@@ -52,6 +52,7 @@ class Module:
     types: dict[Name, TypeDeclaration]
     imports: dict[Name, "Module"]
     scope: Scope
+    includes: list[str]
     
     def import_type(self, name: Name | UnaryOperator):
         # FIXME: weird hack
@@ -263,7 +264,7 @@ class Module:
 
     @classmethod
     def new(cls, name='main'):
-        module = cls(name, dict(), dict(), dict(), None)
+        module = cls(name, dict(), dict(), dict(), None, list())
         module.scope = Scope.new(module)
 
         return module
@@ -299,6 +300,12 @@ class Checker:
             elif right is CHAR:
                 return True
             elif right is TYPE:
+                return True
+            elif right is U8:
+                return True
+            elif right is U16:
+                return True
+            elif right is U32:
                 return True
 
         if swap_order:
@@ -507,6 +514,8 @@ class Checker:
             return Typed(unary_operator, INT)
         elif unary_operator.operator.kind is TokenKind.Interrogation:
             return Typed(unary_operator, BOOL)
+        elif unary_operator.operator.kind is TokenKind.Exclamation:
+            return Typed(unary_operator, BOOL)
 
         raise NotImplementedError(f"unary operator '{unary_operator.operator.format}' is not implemented yet")
     
@@ -678,6 +687,9 @@ class Checker:
                 return self.check_assignment(line)
             elif type(line) is Call:
                 return self.check_call(line)
+            elif type(line) is Keyword:
+                if line.kind is KeywordKind.Break:
+                    return line
             
             raise NotImplementedError(f'check() for {line} is not implemented yet')
 
@@ -829,6 +841,8 @@ class Checker:
     def check(self):
         for ast in self.asts:
             if type(ast) is Comment:
+                if ast.value.startswith('#include '):
+                    self.module.includes.append(ast.value)
                 yield ast
             elif type(ast) is Extern:
                 yield self.check_extern(ast)
@@ -842,6 +856,8 @@ class Checker:
                 yield self.check_union_declaration(ast)
             elif type(ast) is FunctionDeclaration:
                 yield self.check_function_declaration(ast)
+            elif type(ast) is VariableDeclaration:
+                yield self.check_variable_declaration(ast)
             else:
                 raise NotImplementedError
         

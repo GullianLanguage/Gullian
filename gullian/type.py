@@ -108,6 +108,9 @@ TYPE = Type.new('type')
 MODULE = Type.new('module')
 VOID = Type.new('void')
 BOOL = Type.new('bool')
+U8 = Type.new('u8')
+U16 = Type.new('u16')
+U32 = Type.new('u32')
 INT = Type.new('int')
 FLOAT = Type.new('float')
 STR = Type.new('str')
@@ -123,6 +126,9 @@ BASIC_TYPES = {
     'void': VOID,
     'bool': BOOL,
     'int': INT,
+    'u8': U8,
+    'u16': U16,
+    'u32': U32,
     'float': FLOAT,
     'str': STR,
     'byte': BYTE,

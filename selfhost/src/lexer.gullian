@@ -1,4 +1,5 @@
 import std.io
+import std.option
 
 enum TokenKind {
     LeftParenthesis,
@@ -21,9 +22,7 @@ fun TokenKind.repr(self: TokenKind) : str {
 }
 
 fun main() : int {
-    let token = TokenKind.LeftParenthesis
-    let token1 = TokenKind.RightParenthesis
+    let token = option.some(TokenKind.LeftParenthesis)
 
     io.puts(token.repr())
-    io.puts(token1.repr())
 }

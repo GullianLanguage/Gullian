@@ -18,12 +18,36 @@ fun cat(a: str, b: str) : str {
     return c
 }
 
+fun u8.to_string(self: int) : str {
+    if self == 0 {
+        return "0"
+    }
+
+    let buffer: str = mem.malloc(4)
+
+    sprintf(buffer, "%u", self)
+
+    return buffer
+}
+
+fun u16.to_string(self: int) : str {
+    if self == 0 {
+        return "0"
+    }
+
+    let buffer: str = mem.malloc(8)
+
+    sprintf(buffer, "%h", self)
+
+    return buffer
+}
+
 fun int.to_string(self: int) : str {
     if self == 0 {
         return "0"
     }
 
-    let buffer: str = mem.malloc(256)
+    let buffer: str = mem.malloc(21)
 
     sprintf(buffer, "%i", self)
 
@@ -35,7 +59,7 @@ fun float.to_string(self: float) : str {
         return "0.0"
     }
 
-    let buffer: str = mem.malloc(8)
+    let buffer: str = mem.malloc(318)
 
     sprintf(buffer, "%f", self)
 

@@ -37,7 +37,7 @@ fun u16.to_string(self: int) : str {
 
     let buffer: str = mem.malloc(8)
 
-    sprintf(buffer, "%h", self)
+    sprintf(buffer, "%hu", self)
 
     return buffer
 }

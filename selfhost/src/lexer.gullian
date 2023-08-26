@@ -16,17 +16,17 @@ enum TokenKind {
 
 fun TokenKind.repr(self: TokenKind) : str {
     let value: str = switch self {
-        LeftParenthesis => "LeftParenthesis",
-        RightParenthesis => "LeftParenthesis",
-        Plus => "LeftParenthesis",
-        Minus => "LeftParenthesis",
-        Star => "LeftParenthesis",
-        Slash => "LeftParenthesis",
-        Name => "LeftParenthesis",
-        Bool => "LeftParenthesis",
-        Int => "LeftParenthesis",
-        Float => "LeftParenthesis",
-        String => "LeftParenthesis",
+        TokenKind.LeftParenthesis: "LeftParenthesis",
+        TokenKind.RightParenthesis: "LeftParenthesis",
+        TokenKind.Plus: "LeftParenthesis",
+        TokenKind.Minus: "LeftParenthesis",
+        TokenKind.Star: "LeftParenthesis",
+        TokenKind.Slash: "LeftParenthesis",
+        TokenKind.Name: "LeftParenthesis",
+        TokenKind.Bool: "LeftParenthesis",
+        TokenKind.Int: "LeftParenthesis",
+        TokenKind.Float: "LeftParenthesis",
+        TokenKind.String: "LeftParenthesis",
         _: "..."
     }
 
@@ -41,7 +41,7 @@ struct Token {
 
 
 fun main() : int {
-    let token = option.some(TokenKind.LeftParenthesis)
+    let token = TokenKind.LeftParenthesis
 
     io.puts(token.repr())
 }

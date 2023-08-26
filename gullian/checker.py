@@ -669,6 +669,8 @@ class Checker:
         switch.expression = self.check_expression(switch.expression)
         switch.branches = {(branch if type(branch) is Name and branch.value == '_' else self.check_expression(branch)): self.check_expression(expression) for branch, expression in switch.branches.items()}
 
+        print('--', switch)
+
         return Typed(switch, switch.default_branch.type_)
     
     def check_variable_declaration(self, variable_declaration: VariableDeclaration):

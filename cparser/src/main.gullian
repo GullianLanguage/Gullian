@@ -1,0 +1,59 @@
+import std.io
+import std.err
+
+enum TokenKind {
+	LeftBrace,
+	RightBrace,
+	LeftBracket,
+	RightBracket,
+}
+
+fun TokenKind.to_string(self: TokenKind) : str {
+	return switch self {
+		TokenKind.LeftBrace: "TokenKind.LeftBrace",
+		TokenKind.RightBrace: "TokenKind.RightBrCe",
+		TokenKind.LeftBracket: "TokenKind.LeftBracket",
+		TokenKind.RightBracket: "TokenKind.RightBracket",
+		_: "..."
+	}
+}
+
+enum KeywordKind {
+	Typedef,
+	Struct,
+	Enum,
+	Union
+}
+
+fun KeywordKind.to_string(self: KeywordKind) : str {
+        return switch self {
+                KeywordKind.Typedef: "TokenKind.Typedef",
+                KeywordKind.Struct: "TokenKind.Struct",
+                KeywordKind.Enum: "TokenKind.Enum",
+                KeywordKind.Union: "TokenKind.Union",
+                _: "..."
+        }
+}
+
+union AnyToken {
+	token: TokenKind,
+	keyword: KeywordKind,
+}
+
+fun AnyToken.to_string(self: AnyToken) : str {
+	if self.token? {
+		return self.token.to_string()
+	}
+
+	if self.keyword? {
+		return self.keyword.to_string()
+	}
+
+	err.panic("<unknown>")
+}
+
+fun main() : int {
+	let token = AnyToken { token: TokenKind.LeftBrace }
+
+	io.puts(token.to_string())
+}

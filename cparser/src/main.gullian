@@ -1,5 +1,6 @@
 import std.io
 import std.err
+import std.fmt
 
 enum TokenKind {
 	LeftBrace,
@@ -26,18 +27,35 @@ enum KeywordKind {
 }
 
 fun KeywordKind.to_string(self: KeywordKind) : str {
-        return switch self {
-                KeywordKind.Typedef: "TokenKind.Typedef",
-                KeywordKind.Struct: "TokenKind.Struct",
-                KeywordKind.Enum: "TokenKind.Enum",
-                KeywordKind.Union: "TokenKind.Union",
-                _: "..."
-        }
+	return switch self {
+		KeywordKind.Typedef: "KeywordKind.Typedef",
+		KeywordKind.Struct: "KeywordKind.Struct",
+		KeywordKind.Enum: "KeywordKind.Enum",
+		KeywordKind.Union: "KeywordKind.Union",
+		_: "..."
+	}
+}
+
+struct Name {
+	value: str,
+}
+
+fun Name.to_string(self: Name) : str {
+	return self.value.clone()
+}
+
+union Literal {
+	as_str: str,
+	as_bool: bool,
+	as_int: int,
+	as_float: float,
 }
 
 union AnyToken {
 	token: TokenKind,
 	keyword: KeywordKind,
+	literal: Literal,
+	name: Name,
 }
 
 fun AnyToken.to_string(self: AnyToken) : str {
@@ -53,7 +71,9 @@ fun AnyToken.to_string(self: AnyToken) : str {
 }
 
 fun main() : int {
-	let token = AnyToken { token: TokenKind.LeftBrace }
+	let banana: ptr = "banana"
+	let banana_clone: ptr = "banana".clone()
 
-	io.puts(token.to_string())
+	io.puts("string: ".cat(banana).cat(", address: ").cat(int.to_string(banana)))
+	io.puts("string: ".cat(banana_clone).cat(", address: ").cat(int.to_string(banana_clone)))
 }

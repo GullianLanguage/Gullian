@@ -6,4 +6,4 @@ all:
 	$(CC) target/main.c -o target/main.exe
 
 run:
-	./target/lexer.exe
+	./target/main.exe

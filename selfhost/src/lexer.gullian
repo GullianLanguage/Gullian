@@ -17,16 +17,16 @@ enum TokenKind {
 fun TokenKind.repr(self: TokenKind) : str {
     let value: str = switch self {
         TokenKind.LeftParenthesis: "LeftParenthesis",
-        TokenKind.RightParenthesis: "LeftParenthesis",
-        TokenKind.Plus: "LeftParenthesis",
-        TokenKind.Minus: "LeftParenthesis",
-        TokenKind.Star: "LeftParenthesis",
-        TokenKind.Slash: "LeftParenthesis",
-        TokenKind.Name: "LeftParenthesis",
-        TokenKind.Bool: "LeftParenthesis",
-        TokenKind.Int: "LeftParenthesis",
-        TokenKind.Float: "LeftParenthesis",
-        TokenKind.String: "LeftParenthesis",
+        TokenKind.RightParenthesis: "RightParenthesis",
+        TokenKind.Plus: "Plus",
+        TokenKind.Minus: "Minus",
+        TokenKind.Star: "Star",
+        TokenKind.Slash: "Slash",
+        TokenKind.Name: "Name",
+        TokenKind.Bool: "Bool",
+        TokenKind.Int: "Int",
+        TokenKind.Float: "Float",
+        TokenKind.String: "String",
         _: "..."
     }
 

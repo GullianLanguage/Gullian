@@ -3,9 +3,22 @@ extern fun sprintf(buffer: str, fmt: str, arg: any) : void
 
 import std.mem
 
+fun str.len(self: str) : int {
+    return strlen(self)
+}
+
+fun str.clone(self: str) : str {
+    let buffer_size = self.len() +1
+    let buffer: str = mem.malloc(buffer_size)
+
+    mem.memcpy(buffer, self, buffer_size)
+
+    return buffer
+}
+
 fun cat(a: str, b: str) : str {
-    let len_a = strlen(a)
-    let len_b = strlen(b)
+    let len_a = a.len()
+    let len_b = b.len()
     let len_a_b = len_a + len_b
 
     let c: ptr = mem.malloc(len_a_b +1)

@@ -413,7 +413,11 @@ class Checker:
                 if function_arguments_dict['self'] == PTR:
                     call.arguments.insert(0, Typed(UnaryOperator(Token(TokenKind.Ampersand, 0), call.name.value.left), PTR))
                 else:
-                    call.arguments.insert(0, call.name.value.left)
+                    if type(left := call.name.value.left.value) is Type:
+                        if left.name != function.value.owner.name:
+                            raise NameError(f'unmatch {left.name.format} != {function.value.owner.name.format}. at line {call.line}, in module {self.module.name}')
+                    else:
+                        call.arguments.insert(0, call.name.value.left)
         
         if len(call.arguments) > len(function.head.arguments):
             raise ValueError(f'too many arguments for function "{function.head.format}". expected {len(function.head.arguments)}, got {len(call.arguments)}. at line {call.name.line}. in module {self.module.name}')

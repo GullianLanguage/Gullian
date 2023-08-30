@@ -66,7 +66,7 @@ class CGen:
             return self.gen_expression(Typed(expression, ANY))
 
         if type(expression.value) is Type:
-            return f'sizeof({self.gen_name(expression.value)})'
+            return f'sizeof({self.refer_type(expression.value)})'
 
         if type(expression.value) is Literal:
             if type(expression.value.value) is str:
@@ -84,9 +84,9 @@ class CGen:
             return f'{self.gen_expression(expression.value.expression.left)}.tag == {self.gen_name(expression.value.expression.left.type_)}__{self.gen_name(expression.value.expression.right)}'
         elif type(expression.value) is Attribute:
             if expression.value.left.type_ == PTR:
-                return f'{self.gen_name(expression.value.left)}->{self.gen_name(expression.value.right)}'
-
-            return f'{self.gen_name(expression.value.left)}.{self.gen_name(expression.value.right)}'
+                return f'{self.gen_expression(expression.value.left)}->{self.gen_expression(expression.value.right)}'
+            
+            return f'{self.gen_expression(expression.value.left)}.{self.gen_expression(expression.value.right)}'
         elif type(expression.value) is Subscript:
             return f'{self.gen_expression(expression.value.head)}[{", ".join(self.gen_expression(item) for item in expression.value.items)}]'
 

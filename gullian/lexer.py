@@ -124,6 +124,8 @@ class KeywordKind(BaseKind, Enum):
     Fun=                    'fun'
     Return=                 'return'
     While=                  'while'
+    For=                    'for'
+    In=                     'in'
     Break=                  'break'
     Continue=               'continue'
     Switch=                 'switch'
@@ -139,7 +141,7 @@ KEYWORDKIND_SORTED = sorted(KeywordKind.__members__.values(), key=lambda member:
 
 @dataclass
 class Keyword:
-    kind: TokenKind
+    kind: KeywordKind
     line: int
 
     @property

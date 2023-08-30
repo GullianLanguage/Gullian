@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, Return, TestGuard, StructLiteral, Assignment, BinaryOperator, UnaryOperator
+from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, For, Return, TestGuard, StructLiteral, Assignment, BinaryOperator, UnaryOperator
 from ..checker import BASIC_TYPES, Module, Type, Typed, Body
 from ..type import TYPE, PTR, ANY
 
@@ -47,11 +47,14 @@ class CGen:
 
         return f'({self.refer_type(literal.structure)}) {{ {generated_arguments} }}'
 
-    def gen_variable_declaration(self, variable_declaration: Typed[VariableDeclaration], indent=0):
+    def gen_variable_declaration(self, variable_declaration: Typed[VariableDeclaration], indent=0, no_type_prefix=False):
         if type(variable_declaration.value.value.value) is Switch:
             return [
                 self.gen_switch(variable_declaration.value.value, varname=self.gen_name(variable_declaration.name), indent=indent +1),
             ]
+        
+        if no_type_prefix:
+            return f'{self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
 
         return f'{self.refer_type(variable_declaration.type_)} {self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
     
@@ -150,6 +153,11 @@ class CGen:
                 return f'return {self.gen_expression(line.value)};'
             elif type(line) is While:
                 return f'while ({self.gen_expression(line.condition)}) {self.gen_body(line.body, indent +1)}'
+            elif type(line) is For:
+                return [
+                    self.gen_variable_declaration(line.head_iterator),
+                    f'for ({self.gen_variable_declaration(line.head_target)} ({self.gen_expression(line.head_checker)}); {self.gen_variable_declaration(line.head_target, no_type_prefix=True)[:-1]}) {self.gen_body(line.body, indent +1)}'
+                ]
 
             if type(line.value) is VariableDeclaration:
                 return self.gen_variable_declaration(line, indent)

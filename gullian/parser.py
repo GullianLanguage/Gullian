@@ -169,6 +169,21 @@ class While:
         return self.condition.line
 
 @dataclass
+class For:
+    head_target: "Expression"
+    head_iterator: "Expression"
+    body: Body
+    head_checker: "Expression"=None
+
+    @property
+    def format(self):
+        return f'for {self.head_target.format} in {self.head_iterator} {{ ... }}'
+    
+    @property
+    def line(self):
+        return self.head_target.line
+
+@dataclass
 class Return:
     value: "Expression"
 
@@ -579,6 +594,8 @@ class Parser:
                     lines.append(self.parse_if())
                 elif token.kind is KeywordKind.While:
                     lines.append(self.parse_while())
+                elif token.kind is KeywordKind.For:
+                    lines.append(self.parse_for())
                 elif token.kind is KeywordKind.Return:
                     lines.append(self.parse_return())
                 elif token.kind is KeywordKind.Comptime:
@@ -754,6 +771,18 @@ class Parser:
 
     def parse_while(self) -> While:
         return While(self.parse_expression(self.source.capture(), terminals={TokenKind.LeftBrace}), self.parse_body())
+    
+    def parse_for(self) -> While:
+        head_target = self.parse_expression(self.source.capture(), terminals={TokenKind.LeftBrace})
+        
+        keyword_in = self.source.capture()
+
+        if not (type(keyword_in) is Keyword and keyword_in.kind is KeywordKind.In):
+            raise SyntaxError(f"`for ... in <iterator>` loop expects keyword `in` before iterator parameter. in module '{self.module.name.format}', at line {keyword_in.line}")
+
+        head_iterator = self.parse_expression(self.source.capture(), terminals={TokenKind.LeftBrace})
+
+        return For(head_target, head_iterator, self.parse_body())
     
     def parse_return(self) -> Return:
         return Return(self.parse_expression(self.source.capture()))

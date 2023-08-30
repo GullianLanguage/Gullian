@@ -8,7 +8,7 @@ from .type import *
 from .source import Source
 from .lexer import Lexer, Name, Literal, Token, TokenKind, Comment, Keyword, KeywordKind
 from .parser import Ast, TypeDeclaration, Expression
-from .parser import Parser, FunctionDeclaration, FunctionHead, Extern, Import, EnumDeclaration, StructDeclaration, UnionDeclaration, VariableDeclaration, Assignment, Body, While, If, Return, Comptime, Switch, Call, Attribute, Subscript, StructLiteral, UnaryOperator, BinaryOperator, TestGuard
+from .parser import Parser, FunctionDeclaration, FunctionHead, Extern, Import, EnumDeclaration, StructDeclaration, UnionDeclaration, VariableDeclaration, Assignment, Body, While, For, If, Return, Comptime, Switch, Call, Attribute, Subscript, StructLiteral, UnaryOperator, BinaryOperator, TestGuard
 from .interpreter import Interpreter
 
 from .type import *
@@ -211,6 +211,15 @@ class Module:
                     return name_left_type.associated_functions[name.right]
                 
                 raise NameError(f'{name.right} is not an associated function of {name.left}. at line {name.right.line} in module {self.name}')
+            
+            elif type(name.left) is Type:
+                name_left_type = name.left
+
+                if name.right in name_left_type.associated_functions:
+                    return name_left_type.associated_functions[name.right]
+                
+                raise NameError(f'{name.right} is not an associated function of {name.left}. at line {name.right.line} in module {self.name}')
+            
             elif name.left in self.imports:
                 return self.imports[name.left].import_function(name.right)
 
@@ -441,7 +450,7 @@ class Checker:
         attribute.left = self.check_expression(attribute.left)
 
         if type(attribute.left) is not Typed:
-            raise RuntimeError(f'checking for {attribute.left.format} in attribute.format failed. at line {attribute.line}, in module {self.module.name}')
+            raise RuntimeError(f'checking for {attribute.left.format} in {attribute.format} failed. at line {attribute.line}, in module {self.module.name}')
         
         if attribute.left.type_ == MODULE:
             attribute.right = self.module.imports[attribute.left.value].import_any(attribute.right)
@@ -651,7 +660,7 @@ class Checker:
             return self.check_test_guard(expression)
         
         if type(expression) is Type:
-            return expression
+            return Typed(expression, type_=TYPE)
         elif type(expression) is Typed:
             return expression
 
@@ -726,6 +735,8 @@ class Checker:
                 return self.check_if(line, return_type)
             elif type(line) is While:
                 return self.check_while(line, return_type)
+            elif type(line) is For:
+                return self.check_for(line, return_type)
             elif type(line) is Comptime:
                 return self.check_comptime(line)
             elif type(line) is Switch:
@@ -816,6 +827,28 @@ class Checker:
         while_.body = self.check_body(while_.body, return_type)
 
         return while_
+    
+    def check_for(self, for_: For, return_type: Type):
+        head_iterator_name = Name(f'iter_{self.module.name}_{for_.line}', for_.line)
+        head_target_name = for_.head_target
+
+        for_.head_iterator = self.check_variable_declaration(VariableDeclaration(head_iterator_name, self.check_expression(for_.head_iterator)))
+
+        type_ = for_.head_iterator.type_
+        associated_functions_dict = dict(type_.associated_functions)
+
+        function_next = associated_functions_dict.get('next')
+
+        if function_next is None:
+            raise AttributeError(f"type `{type_.name.format}` dot not provide a `fun next(...)` method. then its not iterable. at line {for_.line}, in module {self.module.name}")
+        
+        for_.head_target = self.check_variable_declaration(VariableDeclaration(head_target_name, Call(Attribute(head_iterator_name, Name('next', for_.line)), list(), list())))
+        
+        # NOTE: Maybe bug prone?
+        for_.head_checker = self.check_test_guard(TestGuard(Attribute(head_target_name, Name('ok', for_.line))))
+        for_.body = self.check_body(for_.body, return_type)
+
+        return for_
     
     def check_extern(self, extern: Extern):
         extern.head.return_hint = self.module.import_type(extern.head.return_hint)

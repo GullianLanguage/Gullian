@@ -16,13 +16,8 @@ fun main() : int {
 
     pessoas.push(Person { "marcos", 14 })
 
-
-    let pessoas_iter = pessoas.iter()
-    let pessoa = pessoas_iter.next()
-
-    while pessoa.ok? {
+    for pessoa in pessoas.iter() {
         io.puts(pessoa.ok.to_string())
-        pessoa = pessoas_iter.next()
+        io.puts('okok')
     }
-
 }

@@ -1,0 +1,28 @@
+import std.fmt
+import std.io
+import std.vec
+
+struct Person {
+    name: str,
+    age: int,
+}
+
+fun Person.to_string(self: Person) : str {
+    return "Person { name: ".cat(self.name).cat(", age: ".cat(self.age.to_string())).cat(" }")
+}
+
+fun main() : int {
+    let pessoas = vec.new(Person { "sofia", 22 })
+
+    pessoas.push(Person { "marcos", 14 })
+
+
+    let pessoas_iter = pessoas.iter()
+    let pessoa = pessoas_iter.next()
+
+    while pessoa.ok? {
+        io.puts(pessoa.ok.to_string())
+        pessoa = pessoas_iter.next()
+    }
+
+}

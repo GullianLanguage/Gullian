@@ -112,7 +112,13 @@ fun Lexer.new(source: str) : Lexer {
 }
 
 fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
-	return err.fail[AnyToken, str]("<stopiteration>")
+	if self.source[self.index] == 0 {
+		return err.fail[AnyToken, str]("<stopiteration>")
+	}
+
+	self.index += 1
+
+	return err.ok[AnyToken](AnyToken { token: TokenKind.LeftBrace })
 }
 
 fun main() : int {
@@ -125,6 +131,8 @@ fun main() : int {
 
 	while i.ok? {
 		io.puts(i.to_string())
+
+		i = lexer.next()
 	}
 
 	io.puts("<end>")

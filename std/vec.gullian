@@ -6,6 +6,22 @@ struct Vector[T] {
     items: ptr[T]
 }
 
+struct VectorIterator[T] {
+    vector: ptr[Vector[T]],
+    index: int
+}
+
+fun VectorIterator.next[T](self: ptr[VectorIterator[T]]) : err.Result[T, str] {
+    if self.index < self.vector.length {
+        let item = self.vector.items[self.index]
+        self.index += 1
+
+        return err.ok[T](item)
+    }
+
+    return err.fail[T, str]("<stopiteration>")
+}
+
 fun Vector.has[T](self: ptr[Vector[T]], item: T) : bool {
     let index = 0
 
@@ -26,6 +42,9 @@ fun Vector.push[T](self: ptr[Vector[T]], item: T) : void {
     self.items[self.length -1] = item
 }
 
+fun Vector.iter[T](self: ptr[Vector[T]]) : VectorIterator[T] {
+    return VectorIterator[T] { self, 0 }
+}
 
 fun new[T](item: T) : Vector[T] {
     let items: ptr[T] = mem.malloc(T)

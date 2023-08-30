@@ -1,7 +1,7 @@
 CC= gcc
 GC= python gullian.py
 
-all: hello_world book sdl2
+all: hello_world book sdl2 iterator
 
 hello_world:
 	$(GC) examples/hello_world.gullian hello_world.c
@@ -15,6 +15,10 @@ sdl2:
 	$(GC) examples/sdl2.gullian sdl2.c
 	$(CC) sdl2.c -o sdl2.exe -lSDL2
 
+iterator:
+	$(GC) examples/iterator.gullian iterator.c
+	$(CC) iterator.c -o iterator.exe
+
 run:
 	./hello_world.exe
 
@@ -23,3 +27,6 @@ run_book:
 
 run_sdl2:
 	./sdl2.exe
+
+run_iterator:
+	./iterator.exe

@@ -28,11 +28,14 @@ class CGen:
             return f'A_{self.gen_name(name.left)}_{self.gen_name(name.right)}'
         
         return name.format
+    
+    def refer_type(self, type_: Type):
+        return f"{('struct ' if type(type_) is Type and (type(type_.declaration) is StructDeclaration or type(type_.declaration) is UnionDeclaration) else '')}{self.gen_name(type_)}"
 
     def gen_function_head(self, function_head: FunctionHead):
-        generated_parameters = ", ".join(f"{self.gen_name(argument_type)} {argument_name}" for argument_name, argument_type in function_head.arguments)
+        generated_parameters = ", ".join(f"{self.refer_type(argument_type)} {argument_name}" for argument_name, argument_type in function_head.arguments)
         
-        return f'{self.gen_name(function_head.return_hint)} {self.gen_name(function_head.name)}({generated_parameters})'
+        return f"{self.refer_type(function_head.return_hint)} {self.gen_name(function_head.name)}({generated_parameters})"
     
     def gen_literal(self, literal: StructLiteral):
         generated_arguments = ", ".join(self.gen_expression(argument.value[1]) if type(argument.value) is tuple else  self.gen_expression(argument) for argument in literal.arguments)
@@ -40,9 +43,9 @@ class CGen:
         if type(literal.structure.declaration) is UnionDeclaration:
             x = tuple(field for _, field in literal.structure.declaration.fields).index(literal.arguments[0].type_)
 
-            return f'({self.gen_name(literal.structure)}) {{ {x}, {{.{self.gen_name(literal.structure.declaration.fields[x][0])}={generated_arguments}}} }}'
+            return f'({self.refer_type(literal.structure)}) {{ {x}, {{.{self.gen_name(literal.structure.declaration.fields[x][0])}={generated_arguments}}} }}'
 
-        return f'({self.gen_name(literal.structure)}) {{ {generated_arguments} }}'
+        return f'({self.refer_type(literal.structure)}) {{ {generated_arguments} }}'
 
     def gen_variable_declaration(self, variable_declaration: Typed[VariableDeclaration], indent=0):
         if type(variable_declaration.value.value.value) is Switch:
@@ -50,7 +53,7 @@ class CGen:
                 self.gen_switch(variable_declaration.value.value, varname=self.gen_name(variable_declaration.name), indent=indent +1),
             ]
 
-        return f'{self.gen_name(variable_declaration.type_)} {self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
+        return f'{self.refer_type(variable_declaration.type_)} {self.gen_name(variable_declaration.name)} = {self.gen_expression(variable_declaration.value.value)};'
     
     def gen_expression(self, expression: Expression):
         if type(expression) is Typed:
@@ -171,18 +174,18 @@ class CGen:
     
     def gen_type(self, type_: Type):
         if type(type_.declaration) is StructDeclaration:
-            generated_fields = "; ".join(f'{self.gen_name(field_type)} {self.gen_name(field_name)}' for field_name, field_type in type_.declaration.fields)
+            generated_fields = "; ".join(f'{self.refer_type(field_type)} {self.gen_name(field_name)}' for field_name, field_type in type_.declaration.fields)
 
-            return f'typedef struct {{{generated_fields}; }} {self.gen_name(type_)};'
+            return f'struct {self.gen_name(type_)} {{{generated_fields}; }};'
         elif type(type_.declaration) is UnionDeclaration:
             generated_name =  self.gen_name(type_)
 
             generated_enum_fields = ", ".join(f'{generated_name}__{self.gen_name(field_name)}' for field_name, _ in type_.declaration.fields)
-            generated_fields = "; ".join(f'{self.gen_name(field_type)} {self.gen_name(field_name)}' for field_name, field_type in type_.declaration.fields)
+            generated_fields = "; ".join(f'{self.refer_type(field_type)} {self.gen_name(field_name)}' for field_name, field_type in type_.declaration.fields)
 
             return '\n'.join([
                 f'typedef enum {{ {generated_enum_fields} }} {generated_name}_FIELDS;',
-                f'typedef struct {{int tag; union {{{generated_fields}; }}; }} {generated_name};'
+                f'struct {generated_name} {{int tag; union {{{generated_fields}; }}; }};'
             ])
         elif type(type_.declaration) is EnumDeclaration:
             generated_name =  self.gen_name(type_)

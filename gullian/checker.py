@@ -58,6 +58,8 @@ class Module:
         # FIXME: weird hack
         if type(name) is Type:
             return name
+        elif type(name) is Typed and name.type_ is TYPE:
+            return name.value
         
         if type(name) is UnaryOperator and name.operator.kind is TokenKind.Ampersand:
             return Type(Subscript(PTR, (name.expression,)), PTR.uid, PTR.associated_functions)
@@ -129,7 +131,7 @@ class Module:
             elif type(name.head) is Attribute:
                 type_ = self.import_type(name.head)
 
-                return type_.module.import_type(Subscript(name.head.rightest, name.items))
+                return type_.module.import_type(Subscript(name.head.rightest, tuple(self.import_type(item) for item in name.items)))
 
             if type(name.head) is Type:
                 type_ = name.head
@@ -247,6 +249,9 @@ class Module:
             for type_alias, parametric_type in zip(function.head.generic, name.items):
                 if type(parametric_type) is Type:
                     function.head.module.scope.type_variables[type_alias] = parametric_type
+                    continue
+                elif type(parametric_type) is Typed and parametric_type.type_ is TYPE:
+                    function.head.module.scope.type_variables[type_alias] = parametric_type.value
                     continue
 
                 function.head.module.scope.type_variables[type_alias] = self.import_type(parametric_type)
@@ -401,15 +406,15 @@ class Checker:
 
         if call.generics:
             if type(function) is AssociatedFunction:
-                function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.head.rightest), tuple(call.generics)))
+                function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.head.rightest),tuple(self.check_expression(g) for g in call.generics)))
             else:
-                function = function.head.module.import_function(Subscript(function.head.name.head, tuple(call.generics)))
+                function = function.head.module.import_function(Subscript(function.head.name.head, tuple(self.check_expression(g) for g in call.generics)))
         
         function_arguments_dict = dict(function.head.arguments)
 
         # inserts self
         if type(function.value) is AssociatedFunction:
-            if type(call.name) is Typed:
+            if type(call.name) is Typed and 'self' in function_arguments_dict:
                 if function_arguments_dict['self'] == PTR:
                     call.arguments.insert(0, Typed(UnaryOperator(Token(TokenKind.Ampersand, 0), call.name.value.left), PTR))
                 else:

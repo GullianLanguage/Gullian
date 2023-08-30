@@ -51,6 +51,26 @@ union Literal {
 	as_float: float,
 }
 
+fun Literal.to_string(self: Literal) : str {
+	if self.as_str? {
+		return self.as_str.clone()
+	}
+
+	if self.as_bool? {
+		return self.as_bool.to_string()
+	}
+
+	if self.as_int? {
+		return self.as_int.to_string()
+	}
+
+	if self.as_float? {
+		return self.as_float.to_string()
+	}
+
+	err.panic("<unknown>")
+}
+
 union AnyToken {
 	token: TokenKind,
 	keyword: KeywordKind,
@@ -67,13 +87,45 @@ fun AnyToken.to_string(self: AnyToken) : str {
 		return self.keyword.to_string()
 	}
 
+	if self.literal? {
+		return self.literal.to_string()
+	}
+
+	if self.name? {
+		return self.name.to_string()
+	}
+
 	err.panic("<unknown>")
 }
 
-fun main() : int {
-	let banana: ptr = "banana"
-	let banana_clone: ptr = "banana".clone()
 
-	io.puts("string: ".cat(banana).cat(", address: ").cat(int.to_string(banana)))
-	io.puts("string: ".cat(banana_clone).cat(", address: ").cat(int.to_string(banana_clone)))
+struct Lexer {
+	source: str,
+	index: int,
+}
+
+fun Lexer.new(source: str) : Lexer {
+	return Lexer {
+		source,
+		0,
+	}
+}
+
+fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
+	return err.fail[AnyToken, str]("<stopiteration>")
+}
+
+fun main() : int {
+	let token = AnyToken { literal: Literal { as_float: 50 }}
+
+	let lexer = Lexer.new("int x = 50")
+
+
+	let i = lexer.next()
+
+	while i.ok? {
+		io.puts(i.to_string())
+	}
+
+	io.puts("<end>")
 }

@@ -20,8 +20,6 @@ def compile_file(infile: str, outfile: str):
     asts = tuple(Parser(Source(tokens), module).parse())
     checker = Checker(asts, module)
 
-    print(asts)
-
     for checked in checker.check():
         continue
 

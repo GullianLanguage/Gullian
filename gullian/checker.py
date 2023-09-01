@@ -392,8 +392,6 @@ class Checker:
             if expected_type and expected_type.declaration is not None:
                 matched.update(match_pattern(set(function.head.generic), Subscript(Name('type'), (expected_type,)), Subscript(Name('type'), (function.head.return_hint,))))
 
-            print(matched, expected_type)
-
             if matched:
                 return self.check_call(
                     Call(
@@ -686,8 +684,6 @@ class Checker:
     def check_switch(self, switch: Switch):
         switch.expression = self.check_expression(switch.expression)
         switch.branches = {(branch if type(branch) is Name and branch.value == '_' else self.check_expression(branch)): self.check_expression(expression) for branch, expression in switch.branches.items()}
-
-        print('--', switch)
 
         return Typed(switch, switch.default_branch.type_)
     

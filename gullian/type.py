@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from random import randint
 
 from .lexer import Name
-from .parser import Ast, TypeDeclaration, FunctionDeclaration
+from .parser import Ast, TypeDeclaration, FunctionDeclaration, Subscript
 
 if TYPE_CHECKING:
     from .checker import Module
@@ -44,6 +44,10 @@ class Type(Generic[T]):
 
             elif name.value in (fields_dict := dict(self.declaration.fields)):
                 return fields_dict[name]
+        
+        if self.uid == PTR.uid:
+            if type(self.name) is Subscript:
+                return self.name.items[0].import_any(name)
         
         raise AttributeError(f'Type {self.name.format} does not contains a member called {name}')
 

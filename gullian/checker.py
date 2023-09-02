@@ -200,7 +200,7 @@ class Module:
                 variable = self.scope.get_variable(name.left)
 
                 if variable.type_.module is None:
-                    return self.import_function(Attribute(variable.type_.name, name.right))
+                    return self.import_function(Attribute(variable.type_, name.right))
 
                 return variable.type_.module.import_function(Attribute(variable.type_.name, name.right))
                 
@@ -215,8 +215,10 @@ class Module:
             elif type(name.left) is Type:
                 name_left_type = name.left
 
-                if name.right in name_left_type.associated_functions:
-                    return name_left_type.associated_functions[name.right]
+                function = name_left_type.import_any(name.right)
+
+                if type(function) is Typed and type(function.value) is AssociatedFunction:
+                    return function
                 
                 raise NameError(f'{name.right} is not an associated function of {name.left}. at line {name.right.line} in module {self.name}')
             
@@ -422,7 +424,7 @@ class Checker:
         # inserts self
         if type(function.value) is AssociatedFunction:
             if type(call.name) is Typed and 'self' in function_arguments_dict:
-                if function_arguments_dict['self'] == PTR:
+                if function_arguments_dict['self'] == PTR and call.name.value.left.type_ != function_arguments_dict['self']:
                     call.arguments.insert(0, Typed(UnaryOperator(Token(TokenKind.Ampersand, 0), call.name.value.left), PTR))
                 else:
                     if type(left := call.name.value.left.value) is Type:
@@ -830,10 +832,10 @@ class Checker:
 
         for_.head_iterator = self.check_variable_declaration(VariableDeclaration(head_iterator_name, self.check_expression(for_.head_iterator)))
 
-        type_ = for_.head_iterator.type_
+        type_: Type = for_.head_iterator.type_
         associated_functions_dict = dict(type_.associated_functions)
 
-        function_next = associated_functions_dict.get('next')
+        function_next = type_.import_any(Name('next', for_.line))
 
         if function_next is None:
             raise AttributeError(f"type `{type_.name.format}` dot not provide a `fun next(...)` method. then its not iterable. at line {for_.line}, in module {self.module.name}")

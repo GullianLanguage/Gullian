@@ -111,6 +111,10 @@ fun Lexer.new(source: str) : Lexer {
 	}
 }
 
+fun Lexer.iter(self: ptr[Lexer]) : ptr[Lexer] {
+	return self
+}
+
 fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
 	if self.source[self.index] == 0 {
 		return err.fail[AnyToken, str]("<stopiteration>")
@@ -127,12 +131,8 @@ fun main() : int {
 	let lexer = Lexer.new("int x = 50")
 
 
-	let i = lexer.next()
-
-	while i.ok? {
-		io.puts(i.to_string())
-
-		i = lexer.next()
+	for token in lexer.iter() {
+		io.puts(token.to_string())
 	}
 
 	io.puts("<end>")

@@ -1,5 +1,6 @@
 extern fun strlen(string: str) : int
 extern fun sprintf(buffer: str, fmt: str, arg: any) : void
+extern fun atoi(string: str) : int
 
 import std.mem
 
@@ -93,4 +94,16 @@ fun str.cat(self: str, value: str) : str {
 
 fun str.to_string(self: str) : str {
     return self
+}
+
+fun str.to_int(self: str) : int {
+    return atoi(self)
+}
+
+fun char.to_string(self: char) : str {
+    let buffer: str = mem.malloc(1 +1)
+    buffer[0] = self
+    buffer[1] = 0
+
+    return buffer
 }

@@ -98,7 +98,7 @@ class CGen:
         elif type(expression.value) is Call:
             return self.gen_call(expression.value)
         elif type(expression.value) is BinaryOperator:
-            return f'{self.gen_expression(expression.value.left)} {expression.value.operator.format.upper()} {self.gen_expression(expression.value.right)}'
+            return f'({self.gen_expression(expression.value.left)} {expression.value.operator.format.upper()} {self.gen_expression(expression.value.right)})'
         elif type(expression.value) is Switch:
             raise RuntimeError(f'switch is special, and must be generated before gen_expression()')
         elif type(expression.value) is UnaryOperator:
@@ -121,6 +121,11 @@ class CGen:
             return [
                 f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}',
                 f'else {self.gen_if(if_.false_body, indent=indent)}'
+            ]
+        elif type(if_.false_body) is Body:
+            return [
+                f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}',
+                f'else {self.gen_body(if_.false_body, indent=indent)}'
             ]
         
         return f'if ({self.gen_expression(if_.condition)}) {self.gen_body(if_.true_body, indent)}'

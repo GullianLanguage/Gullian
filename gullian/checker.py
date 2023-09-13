@@ -349,7 +349,6 @@ class Checker:
 
     def check_call(self, call: Call, expected_type: Type=None):
         function: FunctionDeclaration = self.module.import_function(call.name)
-        print('-----------', call.arguments, function.head.name)
         function_arguments_dict = dict(function.head.arguments)
 
         if not call.generics and function.head.generic:

@@ -1,0 +1,28 @@
+import std.err
+
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+struct Apple {
+    color: Color
+}
+
+struct Orange {
+    color: Color
+}
+
+fun create_apple() : err.Result[Apple, str] {
+    return err.ok(Apple { Color.Red })
+}
+
+fun create_orange() : err.Result[Orange, str] {
+    return err.ok(Orange { Color.Red })
+}
+
+fun main() : int {
+    let apple = create_apple()
+    let orange = create_orange()
+}

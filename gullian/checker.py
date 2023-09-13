@@ -349,6 +349,7 @@ class Checker:
 
     def check_call(self, call: Call, expected_type: Type=None):
         function: FunctionDeclaration = self.module.import_function(call.name)
+        print('-----------', call.arguments, function.head.name)
         function_arguments_dict = dict(function.head.arguments)
 
         if not call.generics and function.head.generic:
@@ -406,8 +407,7 @@ class Checker:
                 )
 
             raise ValueError(f"the called function is generic, you must specify its type parameters in the callee '{call.format}'. at line {call.line} in module {self.module.name}")
-
-
+        
         call.name = self.check_expression(call.name)    
         call.arguments = [self.check_expression(argument) for argument in call.arguments]
         call.declaration = function
@@ -415,9 +415,9 @@ class Checker:
 
         if call.generics:
             if type(function) is AssociatedFunction:
-                function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.head.rightest),tuple(self.check_expression(g) for g in call.generics)))
+                function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.rightest),tuple(self.check_expression(g) for g in call.generics)))
             else:
-                function = function.head.module.import_function(Subscript(function.head.name.head, tuple(self.check_expression(g) for g in call.generics)))
+                function = function.head.module.import_function(Subscript(function.head.name, tuple(self.check_expression(g) for g in call.generics)))
         
         function_arguments_dict = dict(function.head.arguments)
 
@@ -799,7 +799,7 @@ class Checker:
                 else:
                     raise Exception(f"associating functions to external types is forbidden. tried to associate to '{attribute.left.format}' in module {self.module.name}")
             else:
-                self.module.functions[function_declaration.head.name.head] = Typed(function_declaration, type_=FUNCTION)
+                self.module.functions[function_declaration.head.name] = Typed(function_declaration, type_=FUNCTION)
         else:
             self.module.functions[function_declaration.head.name] = Typed(function_declaration, type_=FUNCTION)
 

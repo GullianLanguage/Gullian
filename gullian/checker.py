@@ -560,7 +560,11 @@ class Checker:
     def check_unary_operator(self, unary_operator: UnaryOperator):
         unary_operator.expression = self.check_expression(unary_operator.expression)
 
-        if unary_operator.operator.kind is TokenKind.Minus:
+        if type(unary_operator.operator) is Keyword:
+            if unary_operator.operator.kind is KeywordKind.Not:
+                return Typed(unary_operator, BOOL)
+
+        elif unary_operator.operator.kind is TokenKind.Minus:
             return Typed(unary_operator, INT)
         elif unary_operator.operator.kind is TokenKind.Plus:
             return Typed(unary_operator, INT)
@@ -578,13 +582,23 @@ class Checker:
         if not self.check_type_compatibility(binary_operator.left.type_, binary_operator.right.type_):
             raise TypeError(f"type mismatch for binary operation '{binary_operator.operator.format}', {binary_operator.left.type_} != {binary_operator.right.type_}. at line {binary_operator.line} in module {self.module.name}")
         
-        if binary_operator.operator.kind is TokenKind.EqualEqual:
+        if type(binary_operator.operator) is Keyword:
+            if binary_operator.operator.kind is KeywordKind.And:
+                return Typed(binary_operator, BOOL)
+            elif binary_operator.operator.kind is KeywordKind.Or:
+                return Typed(binary_operator, BOOL)
+
+        elif binary_operator.operator.kind is TokenKind.EqualEqual:
             return Typed(binary_operator, BOOL)
         elif binary_operator.operator.kind is TokenKind.NotEqual:
             return Typed(binary_operator, BOOL)
         elif binary_operator.operator.kind is TokenKind.GreaterThan:
             return Typed(binary_operator, BOOL)
         elif binary_operator.operator.kind is TokenKind.LessThan:
+            return Typed(binary_operator, BOOL)
+        elif binary_operator.operator.kind is TokenKind.GreaterThanEqual:
+            return Typed(binary_operator, BOOL)
+        elif binary_operator.operator.kind is TokenKind.LessThanEqual:
             return Typed(binary_operator, BOOL)
         
         elif binary_operator.operator.kind is TokenKind.Minus:

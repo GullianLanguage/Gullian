@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 
 from .source import Source
-from .lexer import TOKENKIND_UNARYOPERATORS, TOKENKIND_BINARYOPERATORS, TOKENKIND_ASSIGNMENTOPERATORS
+from .lexer import TOKENKIND_UNARYOPERATORS, TOKENKIND_BINARYOPERATORS, TOKENKIND_ASSIGNMENTOPERATORS, KEYWORDKIND_UNARYOPERATORS, KEYWORDKIND_BINARYOPERATORS
 from .lexer import Token, Keyword, TokenKind, KeywordKind, Name, Literal, Comment
 
 if TYPE_CHECKING:
@@ -258,7 +258,7 @@ class StructLiteral:
 
 @dataclass
 class UnaryOperator:
-    operator: Token
+    operator: Token | Keyword
     expression: "Expression"
 
     @property
@@ -284,7 +284,7 @@ class TestGuard:
 @dataclass
 class BinaryOperator:
     left: "Expression"
-    operator: Token
+    operator: Token | Keyword
     right: "Expression"
 
     @property
@@ -478,14 +478,19 @@ class Parser:
 
                 right_parenthesis = self.source.capture()
 
-                if not (type(right_parenthesis) is Token and right_parenthesis.kind is TokenKind.RightParenthesis):
+                if type(right_parenthesis) is Keyword:
+                    raise SyntaxError(f"Unexpected keyword '{right_parenthesis.format}' when parsing parenthesized expression, at line {expression.line}. in module {self.module.name}")
+
+                elif not (type(right_parenthesis) is Token and right_parenthesis.kind is TokenKind.RightParenthesis):
                     raise SyntaxError(f"Empty parenthesized expression, at line {expression.line}. in module {self.module.name}")
                 
                 return self.parse_expression(expression, terminals)
             
             raise TypeError(f"expression must be Ast, found Token '{expression.format}'. in line {expression.line}. at module {self.module.name}")
         elif type(expression) is Keyword:
-            if expression.kind is KeywordKind.Comptime:
+            if expression.kind in KEYWORDKIND_UNARYOPERATORS:
+                return self.parse_expression(UnaryOperator(expression, self.parse_expression(self.source.capture(), terminals)), terminals)
+            elif expression.kind is KeywordKind.Comptime:
                 return self.parse_comptime()
             elif expression.kind is KeywordKind.Switch:
                 return self.parse_switch()
@@ -494,7 +499,10 @@ class Parser:
         
         token = self.source.capture()
 
-        if type(token) is Token:
+        if type(token) is Keyword:
+            if token.kind in KEYWORDKIND_BINARYOPERATORS:
+                return BinaryOperator(expression, token, self.parse_expression(self.source.capture(), terminals=terminals))
+        elif type(token) is Token:
             if token.kind in terminals:
                 self.source.release()
                 return expression

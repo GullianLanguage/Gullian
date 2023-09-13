@@ -139,6 +139,15 @@ class KeywordKind(BaseKind, Enum):
 
 KEYWORDKIND_SORTED = sorted(KeywordKind.__members__.values(), key=lambda member: len(member.value))
 
+KEYWORDKIND_UNARYOPERATORS = {
+    KeywordKind.Not,
+}
+
+KEYWORDKIND_BINARYOPERATORS = {
+    KeywordKind.And,
+    KeywordKind.Or,
+}
+
 @dataclass
 class Keyword:
     kind: KeywordKind

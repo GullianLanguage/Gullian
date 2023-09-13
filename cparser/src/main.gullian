@@ -7,14 +7,22 @@ enum TokenKind {
 	RightBrace,
 	LeftBracket,
 	RightBracket,
+	NotEqual,
+	Equal,
+	LessThan,
+	GreaterThan,
 }
 
 fun TokenKind.to_string(self: TokenKind) : str {
 	return switch self {
 		TokenKind.LeftBrace: "TokenKind.LeftBrace",
-		TokenKind.RightBrace: "TokenKind.RightBrCe",
+		TokenKind.RightBrace: "TokenKind.RightBrace",
 		TokenKind.LeftBracket: "TokenKind.LeftBracket",
 		TokenKind.RightBracket: "TokenKind.RightBracket",
+		TokenKind.NotEqual: "TokenKind.NotEqual",
+		TokenKind.Equal: "TokenKind.Equal",
+		TokenKind.LessThan: "TokenKind.LessThan",
+		TokenKind.GreaterThan: "TokenKind.GreaterThan",
 		_: "..."
 	}
 }
@@ -115,12 +123,26 @@ fun Lexer.iter(self: ptr[Lexer]) : ptr[Lexer] {
 	return self
 }
 
+fun Lexer.scan_name(self: ptr[Lexer]) : err.Result[AnyToken, str] {                                       
+}
+
 fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
-	if self.source[self.index] == 0 {
+	let token: int = self.source[self.index]
+        self.index += 1
+
+	io.puts('token: '.cat(token.to_string()).cat(' index:'.cat(self.index.to_string())))
+
+	if token == 0 {
 		return err.fail[AnyToken, str]("<stopiteration>")
 	}
 
-	self.index += 1
+	if token == 61 {
+		return err.ok[AnyToken](AnyToken { token: TokenKind.Equal })
+	}
+
+	if ((token >= 97) and (token <= 122)) or ((token >= 65) and (token <= 90)) {
+		return self.scan_name()
+	}
 
 	return err.ok[AnyToken](AnyToken { token: TokenKind.LeftBrace })
 }
@@ -131,7 +153,7 @@ fun main() : int {
 	let lexer = Lexer.new("int x = 50")
 
 
-	for token in lexer.iter() {
+	for token in lexer {
 		io.puts(token.to_string())
 	}
 

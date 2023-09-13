@@ -98,11 +98,11 @@ class CGen:
         elif type(expression.value) is Call:
             return self.gen_call(expression.value)
         elif type(expression.value) is BinaryOperator:
-            return f'{self.gen_expression(expression.value.left)}{expression.value.operator.format}{self.gen_expression(expression.value.right)}'
+            return f'{self.gen_expression(expression.value.left)} {expression.value.operator.format.upper()} {self.gen_expression(expression.value.right)}'
         elif type(expression.value) is Switch:
             raise RuntimeError(f'switch is special, and must be generated before gen_expression()')
         elif type(expression.value) is UnaryOperator:
-            return f'{expression.value.operator.format}{self.gen_expression(expression.value.expression)}'
+            return f'{expression.value.operator.format.upper()} {self.gen_expression(expression.value.expression)}'
         return expression.format
     
     def gen_call(self, call: Call):
@@ -231,11 +231,16 @@ class CGen:
             yield '#include <stdlib.h>'
             yield '#include <stdio.h>'
 
+            yield '#define NOT !'
+            yield '#define AND &'
+            yield '#define OR ^'
+
             yield '#define u8 uint8_t'
             yield '#define u16 uint16_t'
             yield '#define u32 uint32_t'
             yield '#define str char*'
             yield '#define ptr char*'
+
         
         for type_ in self.module.types.values():
             if not type_.declaration.generic:

@@ -1,9 +1,9 @@
-GC= python "$(GULLIAN_HOME)/gullian.py"
-CC= gcc
+CC= cc
+GC= python $(GULLIAN_HOME)/gullian.py
 
 all:
-	$(GC) src/main.gullian target/main.c
-	$(CC) target/main.c -o target/main.exe
+	$(GC) src/main.gullian main.c
+	$(CC) main.c -o cparser.elf
 
 run:
-	./target/main.exe
+	./cparser.elf

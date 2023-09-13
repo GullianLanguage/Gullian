@@ -11,6 +11,7 @@ enum TokenKind {
 	Equal,
 	LessThan,
 	GreaterThan,
+	Space,
 }
 
 fun TokenKind.to_string(self: TokenKind) : str {
@@ -23,6 +24,7 @@ fun TokenKind.to_string(self: TokenKind) : str {
 		TokenKind.Equal: "TokenKind.Equal",
 		TokenKind.LessThan: "TokenKind.LessThan",
 		TokenKind.GreaterThan: "TokenKind.GreaterThan",
+		TokenKind.Space: "TokenKind.Space",
 		_: "..."
 	}
 }
@@ -49,7 +51,7 @@ struct Name {
 }
 
 fun Name.to_string(self: Name) : str {
-	return self.value.clone()
+	return "Name { value: '".cat(self.value).cat("' }")
 }
 
 union Literal {
@@ -61,19 +63,19 @@ union Literal {
 
 fun Literal.to_string(self: Literal) : str {
 	if self.as_str? {
-		return self.as_str.clone()
+		return "Literal { as_str: '".cat(self.as_str).cat("' }")
 	}
 
 	if self.as_bool? {
-		return self.as_bool.to_string()
+		return "Literal { as_bool: ".cat(self.as_bool.to_string()).cat(" }")
 	}
 
 	if self.as_int? {
-		return self.as_int.to_string()
+		return "Literal { as_int: ".cat(self.as_int.to_string()).cat(" }")
 	}
 
 	if self.as_float? {
-		return self.as_float.to_string()
+		return "Literal { as_float: ".cat(self.as_float.to_string()).cat(" }")
 	}
 
 	err.panic("<unknown>")
@@ -123,14 +125,59 @@ fun Lexer.iter(self: ptr[Lexer]) : ptr[Lexer] {
 	return self
 }
 
-fun Lexer.scan_name(self: ptr[Lexer]) : err.Result[AnyToken, str] {                                       
+fun Lexer.scan_name(self: ptr[Lexer]) : err.Result[Name, str] {
+	let value = ""
+
+	while true {
+		let token: int = self.source[self.index]
+		self.index += 1
+
+		if token == 0 {
+			break
+		}
+
+		let token_char: char = token
+
+		if ((token >= 97) and (token <= 122)) or ((token >= 65) and (token <= 90)) {
+			value = value.cat(token_char.to_string())
+		}
+		else {
+			self.index -= 1
+			break
+		}
+	}
+
+	return err.ok(Name { value })
+}
+
+fun Lexer.scan_number(self: ptr[Lexer]) : err.Result[Literal, str] {
+	let value = ""
+
+	while true {
+		let token: int = self.source[self.index]
+		self.index += 1
+
+		if token == 0 {
+			break
+		}
+
+		let token_char: char = token
+
+		if ((token >= 48) and (token <= 57)) {
+			value = value.cat(token_char.to_string())
+		}
+		else {
+			self.index -= 1
+			break
+		}
+	}
+
+	return err.ok[Literal](Literal { as_int: value.to_int() })
 }
 
 fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
-	let token: int = self.source[self.index]
-        self.index += 1
-
-	io.puts('token: '.cat(token.to_string()).cat(' index:'.cat(self.index.to_string())))
+	let token: char = self.source[self.index]
+	self.index += 1
 
 	if token == 0 {
 		return err.fail[AnyToken, str]("<stopiteration>")
@@ -140,18 +187,30 @@ fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
 		return err.ok[AnyToken](AnyToken { token: TokenKind.Equal })
 	}
 
-	if ((token >= 97) and (token <= 122)) or ((token >= 65) and (token <= 90)) {
-		return self.scan_name()
+	if token == 32 {
+		return err.ok[AnyToken](AnyToken { token: TokenKind.Space })
 	}
 
-	return err.ok[AnyToken](AnyToken { token: TokenKind.LeftBrace })
+	self.index -= 1
+
+	if ((token >= 97) and (token <= 122)) or ((token >= 65) and (token <= 90)) {
+		let name_or_err = self.scan_name()
+		return err.ok[AnyToken](AnyToken { name: name_or_err.unwrap() })
+	}
+	else {
+		if ((token >= 48) and (token <= 57)) {
+			let literal_or_err = self.scan_number()
+			return err.ok[AnyToken](AnyToken { literal: literal_or_err.unwrap() })
+		}
+	}
+
+	return err.fail[AnyToken, str]("<stopiteration>")
 }
 
 fun main() : int {
 	let token = AnyToken { literal: Literal { as_float: 50 }}
 
 	let lexer = Lexer.new("int x = 50")
-
 
 	for token in lexer {
 		io.puts(token.to_string())

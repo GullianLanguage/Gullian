@@ -232,8 +232,8 @@ class CGen:
             yield '#include <stdio.h>'
 
             yield '#define NOT !'
-            yield '#define AND &'
-            yield '#define OR ^'
+            yield '#define AND &&'
+            yield '#define OR ||'
 
             yield '#define u8 uint8_t'
             yield '#define u16 uint16_t'

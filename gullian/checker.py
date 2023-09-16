@@ -579,7 +579,12 @@ class Checker:
         binary_operator.right = self.check_expression(binary_operator.right)
 
         if not self.check_type_compatibility(binary_operator.left.type_, binary_operator.right.type_):
-            raise TypeError(f"type mismatch for binary operation '{binary_operator.operator.format}', {binary_operator.left.type_} != {binary_operator.right.type_}. at line {binary_operator.line} in module {self.module.name}")
+            if type(binary_operator.right.value) is Literal and type(binary_operator.right.value.value) is str and len(binary_operator.right.value.value) == 1:
+                binary_operator.right.value = Typed(Literal(ord(binary_operator.right.value.value), binary_operator.left.value.line), INT)
+            elif type(binary_operator.left.value) is Literal and type(binary_operator.right.value.value) is str and len(binary_operator.right.value.value) == 1:
+                binary_operator.left.value = Typed(Literal(ord(binary_operator.left.value.value), binary_operator.left.value.line), INT)
+            else:
+                raise TypeError(f"type mismatch for binary operation '{binary_operator.operator.format}', {binary_operator.left.type_} != {binary_operator.right.type_}. at line {binary_operator.line} in module {self.module.name}")
         
         if type(binary_operator.operator) is Keyword:
             if binary_operator.operator.kind is KeywordKind.And:

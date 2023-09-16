@@ -29,7 +29,10 @@ class CGen:
         
         return name.format
     
-    def refer_type(self, type_: Type):
+    def refer_type(self, type_: Type | Typed):
+        if type(type_) is Typed and type_.type_ is TYPE:
+            return self.refer_type(type_.value)
+        
         return f"{('struct ' if type(type_) is Type and (type(type_.declaration) is StructDeclaration or type(type_.declaration) is UnionDeclaration) else '')}{self.gen_name(type_)}"
 
     def gen_function_head(self, function_head: FunctionHead):

@@ -62,8 +62,8 @@ class Module:
             return name.value
         
         if type(name) is UnaryOperator and name.operator.kind is TokenKind.Ampersand:
-            return Type(Subscript(PTR, (name.expression,)), PTR.uid, PTR.associated_functions)
-
+            return self.import_type(Subscript(PTR, (self.import_type(name.expression),)))
+        
         if type(name) is Name:
             if name in BASIC_TYPES:
                 return BASIC_TYPES[name]

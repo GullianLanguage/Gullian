@@ -121,7 +121,7 @@ fun Lexer.new(source: str) : Lexer {
 	}
 }
 
-fun Lexer.iter(self: ptr[Lexer]) : ptr[Lexer] {
+fun Lexer.iter(self: &Lexer) : ptr[Lexer] {
 	return self
 }
 

@@ -33,7 +33,7 @@ class FunctionHead:
 
     @property
     def format(self):
-        return f'fun {self.name.format}(...) : {self.return_hint.format}'
+        return f'fun {self.name.format}({", ".join(type_.format for _, type_ in self.arguments)}) : {self.return_hint.format}'
     
     @property
     def line(self):

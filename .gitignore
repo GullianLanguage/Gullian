@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 
 # C/C++
+*.elf
 *.exe
 *.dll
 *.so

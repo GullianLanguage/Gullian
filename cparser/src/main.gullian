@@ -138,7 +138,7 @@ fun Lexer.scan_name(self: ptr[Lexer]) : err.Result[Name, str] {
 
 		let token_char: char = token
 
-		if ((token >= 97) and (token <= 122)) or ((token >= 65) and (token <= 90)) {
+		if ((token >= 'a') and (token <= 'z')) or ((token >= 'A') and (token <= 'Z')) or (token == '_') {
 			value = value.cat(token_char.to_string())
 		}
 		else {
@@ -163,7 +163,7 @@ fun Lexer.scan_number(self: ptr[Lexer]) : err.Result[Literal, str] {
 
 		let token_char: char = token
 
-		if ((token >= 48) and (token <= 57)) {
+		if ((token >= '0') and (token <= '9')) {
 			value = value.cat(token_char.to_string())
 		}
 		else {
@@ -183,22 +183,22 @@ fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
 		return err.fail[AnyToken, str]("<stopiteration>")
 	}
 
-	if token == 61 {
+	if token == '=' {
 		return err.ok[AnyToken](AnyToken { token: TokenKind.Equal })
 	}
 
-	if token == 32 {
+	if token == ' ' {
 		return err.ok[AnyToken](AnyToken { token: TokenKind.Space })
 	}
 
 	self.index -= 1
 
-	if ((token >= 97) and (token <= 122)) or ((token >= 65) and (token <= 90)) {
+	if ((token >= 'a') and (token <= 'z')) or ((token >= 'A') and (token <= 'Z')) {
 		let name_or_err = self.scan_name()
 		return err.ok[AnyToken](AnyToken { name: name_or_err.unwrap() })
 	}
 	else {
-		if ((token >= 48) and (token <= 57)) {
+		if ((token >= '0') and (token <= '9')) {
 			let literal_or_err = self.scan_number()
 			return err.ok[AnyToken](AnyToken { literal: literal_or_err.unwrap() })
 		}

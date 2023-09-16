@@ -594,7 +594,10 @@ class Parser:
             elif type(token) is Token and token.kind is TokenKind.Comma:
                 continue
 
-            if type(token) is Keyword:
+            if type(token) is Comment:
+                lines.append(token)
+
+            elif type(token) is Keyword:
                 if token.kind is KeywordKind.Fun:
                     lines.append(self.parse_function_declaration())
                 elif token.kind is KeywordKind.Let:

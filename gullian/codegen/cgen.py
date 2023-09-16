@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..parser import Ast, TypeDeclaration, Expression, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, For, Return, TestGuard, StructLiteral, Assignment, BinaryOperator, UnaryOperator
+from ..parser import Ast, TypeDeclaration, Expression, Comment, Name, Literal, Attribute, Subscript, FunctionHead, StructDeclaration, UnionDeclaration, EnumDeclaration, FunctionDeclaration, VariableDeclaration, Call, Extern, Switch, If, While, For, Return, TestGuard, StructLiteral, Assignment, BinaryOperator, UnaryOperator
 from ..checker import BASIC_TYPES, Module, Type, Typed, Body
 from ..type import TYPE, PTR, ANY
 
@@ -152,6 +152,9 @@ class CGen:
         tab_next = '  ' * (indent +1)
 
         def gen_line(line: Ast):
+            if type(line) is Comment:
+                return f'// {line.value}'
+            
             if type(line) is If:
                 return self.gen_if(line, indent +1)
             elif type(line) is Return:
@@ -284,7 +287,7 @@ class CGen:
                 for function in basic_type.associated_functions.values():
                     if function.head.generic:
                         continue
-                    
+
                     yield self.gen_function(function)
         
         for type_ in self.module.types.values():

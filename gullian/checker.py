@@ -775,6 +775,9 @@ class Checker:
 
     def check_body(self, body: Body, return_type: Type):
         def check(line: Ast):
+            if type(line) is Comment:
+                return line
+            
             if type(line) is Return:
                 return self.check_return(line, return_type)
             elif type(line) is If:

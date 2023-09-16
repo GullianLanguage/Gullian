@@ -9,7 +9,7 @@ union Result[T, E] {
 }
 
 fun panic(message: str) : void {
-    io.puts("panic: ".cat(message))
+    io.puts("\\x1B[31mpanic\\x1B[36m: ".cat(message).cat("\\x1B[0m"))
 }
 
 fun Result.unwrap[T, E](self: Result[T, E]) : T {

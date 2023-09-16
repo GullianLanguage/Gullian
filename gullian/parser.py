@@ -114,6 +114,10 @@ class FunctionDeclaration:
     body: Body
 
     @property
+    def generic(self):
+        return self.head.generic
+
+    @property
     def format(self):
         return f'{self.head.format} {{ ... }}'
     

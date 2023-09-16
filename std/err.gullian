@@ -24,20 +24,20 @@ fun Result.unwrap[T, E](self: Result[T, E]) : T {
     exit(-1)
 }
 
-fun Result.to_string[T, E](self: Result[T, E]) : E {
+fun Result.to_string[T, E](self: Result[T, E]) : str {
     if self.ok? {
-        return self.ok.to_string()
+        return "Result { ok: ".cat(self.ok.to_string()).cat(" }")
     }
 
     if self.err? {
-        return self.err.to_string()
+        return "Result { err: ".cat(self.err.to_string()).cat(" }")
     }
 
     return "error"
 }
 
-fun ok[T](value: T) : Result[T, str] {
-    return Result[T, str] {
+fun ok[T, E](value: T) : Result[T, E] {
+    return Result[T, E] {
         ok: value
     }
 }

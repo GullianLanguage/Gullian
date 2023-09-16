@@ -11,15 +11,28 @@ struct VectorIterator[T] {
     index: int
 }
 
-fun VectorIterator.next[T](self: &VectorIterator[T]) : err.Result[T, str] {
+enum VectorError {
+    StopIteration,
+    IndexError,
+}
+
+fun VectorError.to_string(self: VectorError) : str {
+    return switch self {
+        VectorError.StopIteration: "StopIteration",
+        VectorError.IndexError: "IndexError",
+        _: "(?VectorError?)",
+    }
+}
+
+fun VectorIterator.next[T](self: &VectorIterator[T]) : err.Result[T, VectorError] {
     if self.index < self.vector.length {
         let item = self.vector.items[self.index]
         self.index += 1
 
-        return err.ok[T](item)
+        return err.ok[T, VectorError](item)
     }
 
-    return err.fail[T, str]("<stopiteration>")
+    return err.fail[T, VectorError](VectorError.StopIteration)
 }
 
 fun Vector.has[T](self: &Vector[T], item: T) : bool {
@@ -40,6 +53,19 @@ fun Vector.push[T](self: &Vector[T], item: T) : void {
     self.length += 1
     self.items = mem.realloc(self.items, self.length * T)
     self.items[self.length -1] = item
+}
+
+fun Vector.pop[T](self: &Vector[T]) : err.Result[T, VectorError] {
+    if self.length <= 0 {
+        return err.fail[T, VectorError](VectorError.IndexError)
+    }
+
+    self.length -= 1
+
+    let item = self.items[self.length]
+    self.items = mem.realloc(self.items, self.length * T)
+
+    return err.ok[T, VectorError](item)
 }
 
 fun Vector.iter[T](self: &Vector[T]) : VectorIterator[T] {

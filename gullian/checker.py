@@ -205,7 +205,7 @@ class Module:
                     return self.import_function(Attribute(name.left.type_.name, name.right))
 
                 return name.left.type_.module.import_function(Attribute(name.left.type_.name, name.right))
-
+            
             if name.left in self.scope.variables:
                 variable = self.scope.get_variable(name.left)
 
@@ -369,41 +369,43 @@ class Checker:
         function: FunctionDeclaration = self.module.import_function(call.name)
         function_arguments_dict = dict(function.head.arguments)
 
-        if not call.generics and function.head.generic:
-            def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression, depth=0, invert_order=True):
-                if type(pattern) is Name:
-                    if pattern in type_vars:
-                        return {pattern: type_}
-                    
-                    raise Exception(f'pattern unmatch {type_.format} ! {pattern.format}')
+        def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression, depth=0, invert_order=True):
+            if type(pattern) is Name:
+                if pattern in type_vars:
+                    return {pattern: type_}
                 
-                elif type(pattern) is UnaryOperator:
-                    if pattern.operator.kind is TokenKind.Ampersand:
-                        return match_pattern(type_vars, type_, Subscript(PTR.name, (pattern.expression,)), invert_order)
-                    
-                elif type(pattern) is Subscript:
-                    type_vars_types = dict()
-
-                    if type(type_) is Type:
-                        if type_ is STR and (pattern.head is PTR or pattern.head == PTR.name):
-                            return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern, depth +1, invert_order)
-                        
-                        if type(type_.name) is Subscript:
-                            type_ = type_.name
-                        else:
-                            raise TypeError(f'{type_} ? {pattern}. in module {self.module.name} at line {pattern.line}')
-                    
-                    for k, v in zip(type_.items, pattern.items):
-                        type_vars_types.update(match_pattern(type_vars, k, v, depth +1, invert_order))
-                
-                    
-                    return type_vars_types
-                
-                if invert_order:
-                    return match_pattern(type_vars, pattern, type_, depth, invert_order=False)
-
-                return {}
+                raise Exception(f'pattern unmatch {type_.format} ! {pattern.format}')
             
+            elif type(pattern) is UnaryOperator:
+                if pattern.operator.kind is TokenKind.Ampersand:
+                    return match_pattern(type_vars, type_, Subscript(PTR.name, (pattern.expression,)), invert_order)
+                
+            elif type(pattern) is Subscript:
+                type_vars_types = dict()
+
+                if type(type_) is Type:
+                    if type_ is STR and (pattern.head is PTR or pattern.head == PTR.name):
+                        return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern, depth +1, invert_order)
+                    
+                    if type(type_.name) is Subscript:
+                        type_ = type_.name
+                    else:
+                        raise TypeError(f'{type_} ? {pattern}. in module {self.module.name} at line {pattern.line}')
+                elif type(type_) is Typed and type_.type_ is TYPE:
+                    return match_pattern(type_vars, type_.value, pattern, depth +1, invert_order)
+                    
+
+                for k, v in zip(type_.items, pattern.items):
+                    type_vars_types.update(match_pattern(type_vars, k, v, depth +1, invert_order))
+            
+                return type_vars_types
+            
+            if invert_order:
+                return match_pattern(type_vars, pattern, type_, depth, invert_order=False)
+
+            return {}
+        
+        if not call.generics and function.head.generic:
             arguments = list(call.arguments)
 
             if type(function) is AssociatedFunction:
@@ -443,6 +445,16 @@ class Checker:
 
 
         if call.generics:
+            matched = dict(zip(function.head.generic, call.generics))
+
+            if expected_type and expected_type.declaration is not None:
+                matched.update(match_pattern(set(function.head.generic), Subscript(Name('type'), (expected_type,)), Subscript(Name('type'), (function.head.return_hint,))))
+
+            call.generics = [matched[name] for name in function.generic]
+            
+            if diff := (function.generic[len(call.generics):]):
+                raise IndexError(f'missing generic parameters {", ".join(map(str, diff))} for call for `{call.name.format}`, at line {call.line}, in module {self.module.name}')
+            
             if type(function) is AssociatedFunction:
                 function = function.head.module.import_function(Subscript(Attribute(function.owner.name, function.head.name.rightest),tuple(self.check_expression(g) for g in call.generics)))
             else:
@@ -718,7 +730,7 @@ class Checker:
         if type(return_type) is not Type:
             raise TypeError(f'return_type must be a Type')
         
-        return_.value = self.check_expression(return_.value)
+        return_.value = self.check_expression(return_.value, return_type)
 
         if not self.check_type_compatibility(return_.value.type_, return_type):
             raise TypeError(f'incompatible types for return, function expectes {return_type} but a {return_.value.type_} was provided. at line {return_.line}. in module {self.module.name}')

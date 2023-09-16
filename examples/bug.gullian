@@ -1,0 +1,19 @@
+# reserved for testing for bugs
+
+import std.io
+import std.vec
+
+fun main() : int {
+    let numbers = vec.new(50)
+
+    let popped = numbers.pop()
+    
+    let popped_unwrap = popped.unwrap()
+
+    io.puts(popped_unwrap.to_string())
+
+    popped = numbers.pop()
+    popped_unwrap = popped.unwrap()
+
+    io.puts(popped_unwrap.to_string())
+}

@@ -121,11 +121,11 @@ fun Lexer.new(source: str) : Lexer {
 	}
 }
 
-fun Lexer.iter(self: &Lexer) : ptr[Lexer] {
+fun Lexer.iter(self: &Lexer) : &Lexer {
 	return self
 }
 
-fun Lexer.scan_name(self: ptr[Lexer]) : err.Result[Name, str] {
+fun Lexer.scan_name(self: &Lexer) : err.Result[Name, str] {
 	let value = ""
 
 	while true {
@@ -150,7 +150,7 @@ fun Lexer.scan_name(self: ptr[Lexer]) : err.Result[Name, str] {
 	return err.ok(Name { value })
 }
 
-fun Lexer.scan_number(self: ptr[Lexer]) : err.Result[Literal, str] {
+fun Lexer.scan_number(self: &Lexer) : err.Result[Literal, str] {
 	let value = ""
 
 	while true {
@@ -175,7 +175,7 @@ fun Lexer.scan_number(self: ptr[Lexer]) : err.Result[Literal, str] {
 	return err.ok[Literal](Literal { as_int: value.to_int() })
 }
 
-fun Lexer.next(self: ptr[Lexer]) : err.Result[AnyToken, str] {
+fun Lexer.next(self: &Lexer) : err.Result[AnyToken, str] {
 	let token: char = self.source[self.index]
 	self.index += 1
 

@@ -3,15 +3,15 @@ import std.err
 
 struct Vector[T] {
     length: int,
-    items: ptr[T]
+    items: &T
 }
 
 struct VectorIterator[T] {
-    vector: ptr[Vector[T]],
+    vector: &Vector[T],
     index: int
 }
 
-fun VectorIterator.next[T](self: ptr[VectorIterator[T]]) : err.Result[T, str] {
+fun VectorIterator.next[T](self: &VectorIterator[T]) : err.Result[T, str] {
     if self.index < self.vector.length {
         let item = self.vector.items[self.index]
         self.index += 1
@@ -22,7 +22,7 @@ fun VectorIterator.next[T](self: ptr[VectorIterator[T]]) : err.Result[T, str] {
     return err.fail[T, str]("<stopiteration>")
 }
 
-fun Vector.has[T](self: ptr[Vector[T]], item: T) : bool {
+fun Vector.has[T](self: &Vector[T], item: T) : bool {
     let index = 0
 
     while index < self.length {
@@ -36,18 +36,18 @@ fun Vector.has[T](self: ptr[Vector[T]], item: T) : bool {
     return false
 }
 
-fun Vector.push[T](self: ptr[Vector[T]], item: T) : void {
+fun Vector.push[T](self: &Vector[T], item: T) : void {
     self.length += 1
     self.items = mem.realloc(self.items, self.length * T)
     self.items[self.length -1] = item
 }
 
-fun Vector.iter[T](self: ptr[Vector[T]]) : VectorIterator[T] {
+fun Vector.iter[T](self: &Vector[T]) : VectorIterator[T] {
     return VectorIterator[T] { self, 0 }
 }
 
 fun new[T](item: T) : Vector[T] {
-    let items: ptr[T] = mem.malloc(T)
+    let items: &T = mem.malloc(T)
     items[0] = item
 
     return Vector[T] { 1, items }

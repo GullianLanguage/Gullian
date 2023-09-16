@@ -352,18 +352,23 @@ class Checker:
         function_arguments_dict = dict(function.head.arguments)
 
         if not call.generics and function.head.generic:
-            def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression, depth=0):
+            def match_pattern(type_vars: set[Name], type_: Expression, pattern: Expression, depth=0, invert_order=True):
                 if type(pattern) is Name:
                     if pattern in type_vars:
                         return {pattern: type_}
                     
                     raise Exception(f'pattern unmatch {type_.format} ! {pattern.format}')
+                
+                elif type(pattern) is UnaryOperator:
+                    if pattern.operator.kind is TokenKind.Ampersand:
+                        return match_pattern(type_vars, type_, Subscript(PTR.name, (pattern.expression,)), invert_order)
+                    
                 elif type(pattern) is Subscript:
                     type_vars_types = dict()
 
                     if type(type_) is Type:
                         if type_ is STR and (pattern.head is PTR or pattern.head == PTR.name):
-                            return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern, depth +1)
+                            return match_pattern(type_vars, Subscript(PTR.name, (CHAR,)), pattern, depth +1, invert_order)
                         
                         if type(type_.name) is Subscript:
                             type_ = type_.name
@@ -371,17 +376,24 @@ class Checker:
                             raise TypeError(f'{type_} ? {pattern}. in module {self.module.name} at line {pattern.line}')
                     
                     for k, v in zip(type_.items, pattern.items):
-                        type_vars_types.update(match_pattern(type_vars, k, v, depth +1))
+                        type_vars_types.update(match_pattern(type_vars, k, v, depth +1, invert_order))
                 
                     
                     return type_vars_types
                 
+                if invert_order:
+                    return match_pattern(type_vars, pattern, type_, depth, invert_order=False)
+
                 return {}
             
             arguments = list(call.arguments)
 
             if type(function) is AssociatedFunction:
-                if dict(function.head.arguments)['self'].head == PTR.name:
+                self_argument = dict(function.head.arguments)['self']
+
+                if type(self_argument) is Subscript and self_argument.head == PTR.name:
+                    arguments.insert(0, Type.new(Subscript(PTR, (function.owner,)), PTR.declaration, PTR.module))
+                elif type(self_argument) is UnaryOperator and self_argument.operator.kind is TokenKind.Ampersand:
                     arguments.insert(0, Type.new(Subscript(PTR, (function.owner,)), PTR.declaration, PTR.module))
                 else:
                     arguments.insert(0, function.owner)

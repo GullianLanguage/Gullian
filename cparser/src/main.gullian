@@ -217,4 +217,6 @@ fun main() : int {
 	}
 
 	io.puts(str(3.1415)) # 3.141500
+	# BUG: It overriding the original function...
+	io.puts(str(3)) # TypeError: argument 'self' of function 'fun str.call[float](float) : str' must be a 'Type(8509) float' but a 'Type(7618) int' (3) was provided. at line 0. in module main
 }

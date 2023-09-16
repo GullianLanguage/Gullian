@@ -18,8 +18,13 @@ This is a early work. It may be unstable, unsafe (memory unsafety) and may conta
 
 Found a bug? Please open a **ISSUE** describing your problem.
 
+## Requirements
+* A C Compiler (gcc or clang)
+* Makefile (Optional)
+* Python3 >= 3.11
 
 ## Example
+Write
 ```
 # examples/hello_world.gullian
 
@@ -29,7 +34,15 @@ fun main() : int {
     io.puts("hello, world")
 }
 ```
-
+Compile
+```
+$ python gullian.py examples/hello_world.gullian hello_world.c
+$ gcc hello_world.c -o hello_world.elf
+```
+Execute
+```
+$ ./hello_world.elf
+```
 
 ## Goals
 * Minimalism

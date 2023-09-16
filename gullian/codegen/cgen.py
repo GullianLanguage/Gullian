@@ -10,7 +10,10 @@ NEWLINE = '\n'
 class CGen:
     module: Module
 
-    def gen_name(self, name: Name | Attribute | Subscript):
+    def gen_name(self, name: Type | Typed | Name | Attribute | Subscript):
+        if type(name) is Typed:
+            return self.gen_name(name.value)
+        
         if type(name) is Type:
             if type(name.name) is Subscript:
                 if name == PTR:
@@ -261,6 +264,9 @@ class CGen:
         if self.module.name == 'main':
             for basic_type in BASIC_TYPES.values():
                 for function in basic_type.associated_functions.values():
+                    if function.head.generic:
+                        continue
+
                     yield f'// associated method of type`{basic_type.format}`'
                     yield self.gen_function_prototype(function)
 
@@ -276,6 +282,9 @@ class CGen:
         if self.module.name == 'main':
             for basic_type in BASIC_TYPES.values():
                 for function in basic_type.associated_functions.values():
+                    if function.head.generic:
+                        continue
+                    
                     yield self.gen_function(function)
         
         for type_ in self.module.types.values():

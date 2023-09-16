@@ -208,7 +208,7 @@ fun Lexer.next(self: &Lexer) : err.Result[AnyToken, str] {
 }
 
 fun main() : int {
-	let token = AnyToken { literal: Literal { as_float: 50 }}
+	let xtoken = AnyToken { literal: Literal { as_float: 520 }}
 
 	let lexer = Lexer.new("int x = 50")
 
@@ -216,5 +216,5 @@ fun main() : int {
 		io.puts(token.to_string())
 	}
 
-	io.puts("<end>")
+	io.puts(str(3.1415))
 }

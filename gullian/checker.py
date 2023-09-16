@@ -161,6 +161,16 @@ class Module:
     def import_function(self, name: Name | Attribute):
         if type(name) is Name:
             if name not in self.functions:
+                type_ = None
+
+                try:
+                    type_ = self.import_type(name)
+                except Exception:
+                    pass
+
+                if type_ is not None:
+                    return self.import_function(Attribute(type_, Name('call', name.line)))
+
                 raise NameError(f'{name} is not a function of module {self.name}. at line {name.line}')
             
             return self.functions[name]
@@ -203,6 +213,14 @@ class Module:
                     return self.import_function(Attribute(variable.type_, name.right))
 
                 return variable.type_.module.import_function(Attribute(variable.type_.name, name.right))
+            
+            elif name.left in self.scope.type_variables:
+                type_variable = self.scope.get_type_variable(name.left)
+
+                if type_variable.type_.module is None:
+                    return self.import_function(Attribute(type_variable, name.right))
+
+                return type_variable.type_.module.import_function(Attribute(type_variable.type_.name, name.right))
                 
             elif name.left in self.types or name.left in BASIC_TYPES:
                 name_left_type = self.import_type(name.left)
@@ -438,7 +456,7 @@ class Checker:
                 if function_arguments_dict['self'] == PTR and call.name.value.left.type_ != function_arguments_dict['self']:
                     call.arguments.insert(0, Typed(UnaryOperator(Token(TokenKind.Ampersand, 0), call.name.value.left), PTR))
                 else:
-                    if type(left := call.name.value.left.value) is Type:
+                    if type(left := call.name.value) is Type or type(left := call.name.value.left.value) is Type:
                         if left.name != function.value.owner.name:
                             raise NameError(f'unmatch {left.name.format} != {function.value.owner.name.format}. at line {call.line}, in module {self.module.name}')
                     else:
@@ -797,10 +815,7 @@ class Checker:
             function_declaration.head.return_hint = self.module.import_type(function_declaration.head.return_hint)
             
         if type(function_declaration.head.name) is Attribute:
-            if function_declaration.head.name.left in self.module.types:
-                type_ = self.module.import_type(function_declaration.head.name.left)
-                type_.associated_functions[function_declaration.head.name.right] = Typed(AssociatedFunction(type_, function_declaration), type_=FUNCTION)
-            elif function_declaration.head.name.left in BASIC_TYPES:
+            if function_declaration.head.name.left in self.module.types or function_declaration.head.name.left in BASIC_TYPES:
                 type_ = self.module.import_type(function_declaration.head.name.left)
                 type_.associated_functions[function_declaration.head.name.right] = Typed(AssociatedFunction(type_, function_declaration), type_=FUNCTION)
             else:
@@ -809,7 +824,7 @@ class Checker:
             attribute = function_declaration.head.name.head
             
             if type(attribute) is Attribute:
-                if attribute.left in self.module.types:
+                if attribute.left in self.module.types or attribute.left in BASIC_TYPES:
                     type_ = self.module.import_type(attribute.left)
                     type_.associated_functions[attribute.right] = Typed(AssociatedFunction(type_, function_declaration), type_=FUNCTION)
                 else:

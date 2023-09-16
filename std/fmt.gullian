@@ -107,3 +107,7 @@ fun char.to_string(self: char) : str {
 
     return buffer
 }
+
+fun str.call[T](self: T) : str {
+	return T.to_string(self)
+}

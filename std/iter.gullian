@@ -1,0 +1,49 @@
+import std.err
+
+enum IterError {
+    StopIteration,
+    IndexError,
+}
+
+fun IterError.to_string(self: IterError) : str {
+    return switch self {
+        IterError.StopIteration: "StopIteration",
+        IterError.IndexError: "IndexError",
+        _: "(?IterError?)",
+    }
+}
+
+struct RangeIterator {
+    end: int,
+    step: int
+    index: int,
+}
+
+fun RangeIterator.next(self: ptr[RangeIterator]) : err.Result[int, IterError] {
+    let index = self.index
+    self.index += self.step
+
+    if self.index > self.end {
+        return err.fail[int, IterError](IterError.StopIteration)
+    }
+
+    return err.ok(index)
+}
+
+struct Range {
+    begin: int,
+    end: int,
+    step: int,
+}
+
+fun Range.iter(self: Range) : RangeIterator {
+    return RangeIterator { self.end, self.step, self.begin }
+}
+
+fun range(begin: int, end: int) : Range {
+    return Range {
+        begin,
+        end,
+        1
+    }
+}

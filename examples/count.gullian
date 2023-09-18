@@ -1,0 +1,8 @@
+import std.iter
+import std.io
+
+fun main() : int {
+    for i in iter.range(0, 10).iter() {
+        io.puts(i.to_string())
+    }
+}

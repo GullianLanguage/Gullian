@@ -27,6 +27,10 @@ bug:
 	$(GC) examples/bug.gullian bug.c
 	$(CC) bug.c -o bug.exe
 
+count:
+	$(GC) examples/count.gullian count.c
+	$(CC) count.c -o count.exe
+
 run:
 	./hello_world.exe
 
@@ -44,3 +48,6 @@ run_results:
 
 run_bug:
 	./bug.exe
+
+run_count:
+	./count.exe
